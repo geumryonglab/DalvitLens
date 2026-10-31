@@ -1,0 +1,44 @@
+# Large local AI model weights & CUDA/llama.cpp runtime (installed via Install-*.ps1)
+/models/
+/runtime/
+/downloads/
+
+# User-specific configuration, encrypted API keys, and local runtime caches
+/settings.json
+/translation-cache.json
+/local-model.key
+/local-server.pid
+/local-server-model.txt
+/*-manifest.json
+
+# Runtime & benchmark logs
+*.log
+*.partial
+
+# Temporary / test build binaries, release dist outputs & verification outputs
+/dist/
+/payload.zip
+/*-update.exe
+/GuildLens.exe
+/*Checks.exe
+/*-verification.png
+/verification.png
+/verification-*.json
+/grouping-screenshot-ocr.json
+/model-startup-timing.json
+/model-switch-checks.json
+/comparison-*results.json
+/comparison-*resources.json
+/comparison-*summary.json
+/benchmark-*-results.json
+/model-comparison.html
+/ui-layout.txt
+/tooltip-settings-notes.txt
+/assets/icon-edit-prompt.txt
+/benchmark/switch-*/
+/benchmark/*.json
+
+# Guide video & YouTube upload kit (keep local only)
+*.mp4
+/youtube/
+/guide-video/

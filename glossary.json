@@ -1,0 +1,369 @@
+{
+    "exact":  {
+                  "ALL":  "전체",
+                  "ON":  "켜짐",
+                  "OFF":  "꺼짐",
+                  "PROCEED":  "진행",
+                  "SETTINGS":  "설정",
+                  "QUIT":  "나가기",
+                  "QUIT GAME":  "게임 종료",
+                  "QUIT TO MENU":  "메뉴로 나가기",
+                  "GAME PAUSED":  "게임 일시정지",
+                  "HIDE":  "숨기기",
+                  "CLOSE":  "닫기",
+                  "CLOSE X":  "닫기",
+                  "FIGHT":  "전투",
+                  "BATTLE":  "전투",
+                  "BATTLE WON":  "전투 승리",
+                  "BATTLE SPEED":  "전투 속도",
+                  "COMBAT DURATION":  "전투 시간",
+                  "RUN DURATION":  "진행 시간",
+                  "TOTAL EARNED":  "총 획득량",
+                  "DAMAGE":  "피해량",
+                  "DAMAGE DEALT":  "가한 피해량",
+                  "TRIGGER COUNTS":  "발동 횟수",
+                  "STATS":  "능력치",
+                  "HERO STATS":  "영웅 능력치",
+                  "HERO":  "영웅",
+                  "HEROES":  "영웅",
+                  "ACTIVE HEROES":  "배치된 영웅",
+                  "RESERVE HEROES":  "대기석 영웅",
+                  "RESERVE HEROES (SPACE)":  "대기석 영웅 (Space)",
+                  "PARTY":  "파티",
+                  "ITEMS":  "아이템",
+                  "RELICS":  "유물",
+                  "TEAM SIZE RELICS":  "팀 규모 유물",
+                  "COMPENDIUM":  "도감",
+                  "FREEZE SHOP":  "상점 잠금",
+                  "REROLL SHOP":  "상점 리롤",
+                  "DROP HERE":  "여기에 놓기",
+                  "DROP HERE TO SELL":  "여기에 놓아 판매",
+                  "CHOOSE YOUR REWARD":  "보상 선택",
+                  "FIND AN ITEM":  "아이템 찾기",
+                  "MINE SHARDS":  "샤드 채굴",
+                  "REST":  "휴식",
+                  "STUDY":  "연구",
+                  "TRAIN":  "훈련",
+                  "DEFEND":  "방어",
+                  "RUSH":  "러시",
+                  "STALL":  "스톨",
+                  "BURN":  "화상",
+                  "FROST":  "서리",
+                  "POISON":  "독",
+                  "CRIT":  "치명타",
+                  "MAX HP":  "최대 체력",
+                  "NO SPACE LEFT":  "남은 공간 없음",
+                  "CANNOT MOVE HERO":  "영웅을 이동할 수 없음",
+                  "EMERGENCY REWIND USED":  "긴급 되감기 사용됨",
+                  "DIFFICULTY MODIFIERS":  "난이도 제약",
+                  "SINGLE COMBAT":  "단일 전투",
+                  "THE WORTHY TRIAL":  "가치 있는 시련",
+                  "THE HIDDEN TEMPLE":  "숨겨진 사원",
+                  "PASSIVE ABILITY":  "패시브 능력",
+                  "ACTIVE ABILITY":  "액티브 능력",
+                  "COMMON RELIC":  "일반 유물",
+                  "RARE RELIC":  "희귀 유물",
+                  "EPIC RELIC":  "에픽 유물",
+                  "LEGENDARY RELIC":  "전설 유물",
+                  "UNIQUE RELIC":  "고유 유물",
+                  "UNIQUE ITEM":  "고유 아이템",
+                  "EPIC ITEM":  "에픽 아이템",
+                  "RARE ITEM":  "희귀 아이템",
+                  "CLASS UPGRADE":  "클래스 업그레이드",
+                  "HOLD [SHIFT] FOR MORE DETAIL":  "[Shift]를 길게 눌러 상세 보기",
+                  "HOLD [SHIFT] FOR MORE DETAIL.":  "[Shift]를 길게 눌러 상세 보기",
+                  "FEEDBACK (ENTER)":  "피드백 (Enter)",
+                  "ADD TO YOUR WISHLIST":  "위시리스트에 추가",
+                  "WISHLIST GUILDRUN NOW":  "지금 Guildrun 위시리스트 추가",
+                  "SHIELD BASTION":  "방패 요새",
+                  "FUNKE":  "펀케",
+                  "INFECTIOUS BOW":  "감염성 활",
+                  "RESERVE":  "대기석 (예비석)",
+                  "CHOOSE HERO":  "영웅 선택하기"
+              },
+    "terms":  [
+                  {
+                      "pattern":  "\\bShards?\\b",
+                      "term":  "Shard / Shards",
+                      "ko":  "샤드(재화)"
+                  },
+                  {
+                      "pattern":  "\\bStall\\b",
+                      "term":  "Stall",
+                      "ko":  "스톨(지연 발동 키워드)"
+                  },
+                  {
+                      "pattern":  "\\bRush\\b",
+                      "term":  "Rush",
+                      "ko":  "러시(초반 발동 키워드)"
+                  },
+                  {
+                      "pattern":  "\\bOmnivamp\\b",
+                      "term":  "Omnivamp",
+                      "ko":  "모든 피해 흡혈(옴니뱀프)"
+                  },
+                  {
+                      "pattern":  "\\bShields?\\b",
+                      "term":  "Shield / Shields",
+                      "ko":  "보호막"
+                  },
+                  {
+                      "pattern":  "\\bCrits?\\b|\\bCritical\\b",
+                      "term":  "Crit / Critical",
+                      "ko":  "치명타"
+                  },
+                  {
+                      "pattern":  "\\bRooted\\b|\\bRoot\\b",
+                      "term":  "Rooted",
+                      "ko":  "속박(이동 불가)"
+                  },
+                  {
+                      "pattern":  "\\bTaunt(s|ed|ing)?\\b",
+                      "term":  "Taunt",
+                      "ko":  "도발"
+                  },
+                  {
+                      "pattern":  "\\bStun(s|ned|ning)?\\b",
+                      "term":  "Stun / Stunned",
+                      "ko":  "기절"
+                  },
+                  {
+                      "pattern":  "\\bStealth\\b",
+                      "term":  "Stealth",
+                      "ko":  "은신"
+                  },
+                  {
+                      "pattern":  "\\bBleed(ing)?\\b",
+                      "term":  "Bleed",
+                      "ko":  "출혈"
+                  },
+                  {
+                      "pattern":  "\\bBurn(s|ing)?\\b",
+                      "term":  "Burn / Burning",
+                      "ko":  "화상"
+                  },
+                  {
+                      "pattern":  "\\bFrost\\b|\\bFrozen\\b",
+                      "term":  "Frost / Frozen",
+                      "ko":  "서리 / 빙결"
+                  },
+                  {
+                      "pattern":  "\\bPoison(s|ed)?\\b",
+                      "term":  "Poison / Poisoned",
+                      "ko":  "독 / 중독"
+                  },
+                  {
+                      "pattern":  "\\bCaster\\b",
+                      "term":  "the caster",
+                      "ko":  "시전자"
+                  },
+                  {
+                      "pattern":  "\\bWearer\\b|\\bHolder\\b",
+                      "term":  "wearer / holder",
+                      "ko":  "착용자 / 보유자"
+                  },
+                  {
+                      "pattern":  "\\bAllies\\b|\\bAlly\\b",
+                      "term":  "ally / allies",
+                      "ko":  "아군"
+                  },
+                  {
+                      "pattern":  "\\bEnemies\\b|\\bEnemy\\b",
+                      "term":  "enemy / enemies",
+                      "ko":  "적"
+                  },
+                  {
+                      "pattern":  "\\bReserves?\\b",
+                      "term":  "Reserves",
+                      "ko":  "대기석(예비석)"
+                  },
+                  {
+                      "pattern":  "\\bBackup\\b",
+                      "term":  "Backup",
+                      "ko":  "대기석 효과(백업)"
+                  },
+                  {
+                      "pattern":  "\\bReroll(s|ed|ing)?\\b",
+                      "term":  "reroll",
+                      "ko":  "리롤(새로고침)"
+                  },
+                  {
+                      "pattern":  "\\bFreeze\\b.*\\bShop\\b",
+                      "term":  "Freeze the Shop",
+                      "ko":  "상점 잠금(고정)"
+                  },
+                  {
+                      "pattern":  "\\bRank(s|ed|ing)? up\\b",
+                      "term":  "Rank up",
+                      "ko":  "승급(등급 상승)"
+                  },
+                  {
+                      "pattern":  "\\bStack(s|ed|ing)?\\b",
+                      "term":  "stack / stacks",
+                      "ko":  "중첩"
+                  },
+                  {
+                      "pattern":  "\\bCooldown\\b",
+                      "term":  "Cooldown",
+                      "ko":  "재사용 대기시간(쿨타임)"
+                  },
+                  {
+                      "pattern":  "\\bOn-hit\\b",
+                      "term":  "On-hit",
+                      "ko":  "적중 시"
+                  },
+                  {
+                      "pattern":  "\\bOn [Kk]ill\\b",
+                      "term":  "On kill",
+                      "ko":  "처치 시"
+                  },
+                  {
+                      "pattern":  "\\bOn [Cc]ast\\b|\\bCast(s|ing)?\\b",
+                      "term":  "cast / On cast",
+                      "ko":  "시전 / 시전 시"
+                  },
+                  {
+                      "pattern":  "\\bAuto [Aa]ttacks?\\b|\\bBasic [Aa]ttacks?\\b",
+                      "term":  "auto attack / basic attack",
+                      "ko":  "기본 공격(평타)"
+                  },
+                  {
+                      "pattern":  "\\bDeal(s|ing)?\\b",
+                      "term":  "deal (damage)",
+                      "ko":  "피해를 입히다(거래 아님)"
+                  },
+                  {
+                      "pattern":  "\\bbelow\\b",
+                      "term":  "below X%",
+                      "ko":  "X% 미만"
+                  },
+                  {
+                      "pattern":  "\\babove\\b",
+                      "term":  "above X%",
+                      "ko":  "X% 초과"
+                  },
+                  {
+                      "pattern":  "\\bTank\\b",
+                      "term":  "Tank",
+                      "ko":  "탱커"
+                  },
+                  {
+                      "pattern":  "\\bWarrior\\b",
+                      "term":  "Warrior",
+                      "ko":  "전사"
+                  },
+                  {
+                      "pattern":  "\\bAssassin\\b",
+                      "term":  "Assassin",
+                      "ko":  "암살자"
+                  },
+                  {
+                      "pattern":  "\\bMystic\\b",
+                      "term":  "Mystic",
+                      "ko":  "비술사(미스틱)"
+                  },
+                  {
+                      "pattern":  "\\bDuelist\\b",
+                      "term":  "Duelist",
+                      "ko":  "결투가(듀얼리스트)"
+                  },
+                  {
+                      "pattern":  "\\bVanguard\\b",
+                      "term":  "Vanguard",
+                      "ko":  "선봉대(뱅가드)"
+                  },
+                  {
+                      "pattern":  "\\bBreaker\\b",
+                      "term":  "Breaker",
+                      "ko":  "브레이커"
+                  },
+                  {
+                      "pattern":  "\\bRelics?\\b",
+                      "term":  "Relic",
+                      "ko":  "유물"
+                  },
+                  {
+                      "pattern":  "\\bACTIVE\\ ABILITIES\\b",
+                      "term":  "ACTIVE ABILITIES",
+                      "ko":  "활성 능력"
+                  },
+                  {
+                      "pattern":  "\\bStarting\\ Mana\\b",
+                      "term":  "Starting Mana",
+                      "ko":  "시작 마나"
+                  },
+                  {
+                      "pattern":  "\\bFIGHT\\b",
+                      "term":  "FIGHT",
+                      "ko":  "전투"
+                  },
+                  {
+                      "pattern":  "\\bFIGHT\\ TOUGHER\\b",
+                      "term":  "FIGHT TOUGHER",
+                      "ko":  "강력한 공격"
+                  },
+                  {
+                      "pattern":  "\\bBeauty\\ Studio\\b",
+                      "term":  "Beauty Studio",
+                      "ko":  "뷰티 스튜디오"
+                  }
+              ],
+    "postReplace":  [
+                        {
+                            "pattern":  "(\\d+)\\s*(?:을|를)?\\s*거래(하세요|합니다|한다|함)",
+                            "replacement":  "$1의 피해를 입힙니다"
+                        },
+                        {
+                            "pattern":  "실속\\s*\\(",
+                            "replacement":  "스톨("
+                        },
+                        {
+                            "pattern":  "스탤\\s*\\(",
+                            "replacement":  "스톨("
+                        },
+                        {
+                            "pattern":  "스탈\\s*\\(",
+                            "replacement":  "스톨("
+                        },
+                        {
+                            "pattern":  "(?\u003c!\\S)(쇼드스|쇼드|슬래드|섀터)(?=[를을이가은는의와과\\s\\.,!\\?]|$)",
+                            "replacement":  "샤드"
+                        },
+                        {
+                            "pattern":  "냉동\\s*식품\\s*판매점",
+                            "replacement":  "상점 잠금"
+                        },
+                        {
+                            "pattern":  "비판\\s*피해",
+                            "replacement":  "치명타 피해"
+                        },
+                        {
+                            "pattern":  "비난\\s*피해량?",
+                            "replacement":  "치명타 피해"
+                        },
+                        {
+                            "pattern":  "뿌리를\\s*내린\\s*적",
+                            "replacement":  "속박된 적"
+                        },
+                        {
+                            "pattern":  "뿌리째진\\s*적",
+                            "replacement":  "속박된 적"
+                        },
+                        {
+                            "pattern":  "뿌리에\\s*뿌리를\\s*내린\\s*적",
+                            "replacement":  "속박된 적"
+                        },
+                        {
+                            "pattern":  "수동\\s*(능력|스킬)",
+                            "replacement":  "패시브 $1"
+                        },
+                        {
+                            "pattern":  "능동적인\\s*능력",
+                            "replacement":  "액티브 능력"
+                        },
+                        {
+                            "pattern":  "수리켄",
+                            "replacement":  "표창"
+                        }
+                    ]
+}

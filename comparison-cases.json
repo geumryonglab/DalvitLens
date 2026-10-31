@@ -1,0 +1,22 @@
+[
+  {"id":"01","topic":"기본 강화","source":"Gain 20% attack speed for 4 seconds.","check":"공격 속도 20%, 지속 4초"},
+  {"id":"02","topic":"조건·대상·보호막","source":"When an ally falls below 30% health, grant them a shield equal to 15% of your maximum health for 8 seconds. Cooldown: 12 seconds. Does not stack.","check":"아군 체력 30% 미만, 시전자 최대 체력 15%, 8초 보호막, 12초 재사용, 중첩 불가"},
+  {"id":"03","topic":"범위·상태·중첩","source":"Flame Strike. Deal 120 magic damage to all enemies within 3 meters. Burning enemies take 25% additional damage for 6 seconds. This effect stacks up to 3 times.","check":"3미터, 120 마법 피해, 화상 대상 25% 추가 피해 6초, 최대 3중첩"},
+  {"id":"04","topic":"발동 횟수·부정","source":"On-hit effects trigger once per cast, not once per target.","check":"적중 시 효과가 대상별이 아니라 시전당 한 번 발동"},
+  {"id":"05","topic":"결손 체력·상한","source":"For every 10% of maximum health missing, gain 2% damage reduction, up to a maximum of 12%.","check":"최대 체력 대비 잃은 체력 매 10%마다 피해 감소 2%, 최대 12%"},
+  {"id":"06","topic":"확률·지속 피해","source":"Attacks have a 15% chance to inflict Bleed, dealing 24 damage over 6 seconds.","check":"공격 시 15% 확률 출혈, 6초에 걸쳐 총 24 피해"},
+  {"id":"07","topic":"치명타 확률과 피해","source":"While above 80% health, gain 30% critical damage. This does not increase critical hit chance.","check":"체력 80% 초과일 때 치명타 피해 30%, 치명타 확률은 증가하지 않음"},
+  {"id":"08","topic":"매 N번째 공격","source":"Every third basic attack cleaves up to 2 nearby enemies for 40% damage.","check":"세 번째 기본 공격마다, 근처 적 최대 2명, 40% 피해"},
+  {"id":"09","topic":"계승·소환수·예외","source":"Summoned units inherit 50% of your Attack, but cannot trigger on-death effects.","check":"소환수가 시전자 공격력 50% 계승, 사망 시 효과 발동 불가"},
+  {"id":"10","topic":"갱신과 중첩 구분","source":"Refresh the duration without adding another stack.","check":"중첩 수를 늘리지 않고 지속시간만 갱신"},
+  {"id":"11","topic":"속박 상태","source":"Rooted enemies cannot move, but can still attack and cast spells.","check":"속박된 적은 이동만 불가, 공격과 주문 시전은 가능"},
+  {"id":"12","topic":"도발 대상","source":"Taunt forces nearby enemies to attack the caster for 3 seconds.","check":"근처 적이 3초 동안 시전자를 공격하도록 강제"},
+  {"id":"13","topic":"메뉴·재화 이월","source":"Spend 2 Mana to reroll the offer. Unspent Gold carries over to the next round.","check":"마나 2 소비로 제안 새로 고침, 남은 골드는 다음 라운드 이월"},
+  {"id":"14","topic":"가감 능력치","source":"Gain +5 Armor. Lose 10% Movement Speed.","check":"방어력 5 증가, 이동 속도 10% 감소"},
+  {"id":"15","topic":"사망 방지","source":"If this unit would die, restore it to 1 health instead. Triggers once per battle.","check":"사망할 상황이면 대신 체력 1로 회복, 전투당 한 번, 사후 부활로 변경 금지"},
+  {"id":"16","topic":"오라·자신 제외","source":"Nearby allies gain +8% Attack Speed; the wearer does not benefit.","check":"근처 아군 공격 속도 8%, 착용자 본인은 효과 제외"},
+  {"id":"17","topic":"효과 재현","source":"Arcane Echo: Repeat the last spell at 35% effectiveness without paying its Mana cost.","check":"마지막 주문을 효과 35%로 재시전, 마나 소모 없음"},
+  {"id":"18","topic":"제약 대상","source":"Remove all debuffs from the lowest-health ally. This ability cannot target the caster.","check":"체력이 가장 낮은 아군의 약화 효과 모두 제거, 시전자 자신은 대상 불가"},
+  {"id":"19","topic":"합연산·곱연산","source":"This bonus is additive with other damage bonuses, not multiplicative.","check":"다른 피해 보너스와 합연산, 곱연산 아님"},
+  {"id":"20","topic":"재사용 대기시간 하한","source":"Cooldown reduction cannot lower this ability's cooldown below 2 seconds.","check":"재사용 대기시간 감소를 적용해도 2초 미만으로 줄일 수 없음"}
+]

@@ -13,6 +13,10 @@
 
 ## 3분 사용 가이드 영상
 
+> **☕ 개발자에게 무료로 힘 실어주는 법**  
+> 이 프로그램은 안 한글 스팀 게임 하다가 답답해서 직접 깎은 무료 도구입니다.  
+> 다운로드해서 잘 쓰셨다면 **값비싼 후원 대신 아래 유튜브 가이드 영상에 [구독]과 [좋아요] 한 번씩만 툭 던져주시면 감사하겠습니다!** (구독자 늘어나면 신나서 기능 더 깎아옵니다)
+
 <p align="center">
   <a href="https://youtu.be/rGeLjq0yW8I">
     <img src="https://img.shields.io/badge/YouTube-3%EB%B6%84%20%EC%99%84%EB%B2%BD%20%EA%B0%80%EC%9D%B4%EB%93%9C%20%EC%98%81%EC%83%81%20%EB%B3%B4%EA%B8%B0-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="DalvitLens 3분 사용 가이드 영상 보기" />

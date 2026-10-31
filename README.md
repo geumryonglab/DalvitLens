@@ -137,6 +137,21 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 
 ---
 
+## 제작자 소개 및 프로젝트 문의 (About & Contact)
+
+오랜 기간 모바일 중심의 서비스·플랫폼 구축 사업을 수행해 왔습니다.  
+모바일 플랫폼 구축, 신규 앱·서비스 개발 문의 및 기타 프로젝트 협업 상담은 아래 이메일로 편하게 연락해 주세요.
+
+<p>
+  <a href="mailto:geumryonglab@gmail.com">
+    <img src="https://img.shields.io/badge/email-geumryonglab%40gmail.com-7B61FF?style=flat-square&logo=gmail&logoColor=white" height="26" alt="email: geumryonglab@gmail.com" />
+  </a>
+</p>
+
+- **이메일 문의**: [geumryonglab@gmail.com](mailto:geumryonglab@gmail.com)
+
+---
+
 ## 라이선스 및 외부 모델 고지 (License & Third-Party Notices)
 
 - **DalvitLens 소스 코드**: [MIT License](./LICENSE) (`Copyright (c) 2026 geumryonglab`)

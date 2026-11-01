@@ -18,12 +18,12 @@
 > 다운로드해서 잘 쓰셨다면 **값비싼 후원 대신 아래 유튜브 가이드 영상에 [구독]과 [좋아요] 한 번씩만 툭 던져주시면 감사하겠습니다!** (구독자 늘어나면 신나서 기능 더 깎아옵니다)
 
 <p align="center">
-  <a href="https://youtu.be/rGeLjq0yW8I">
+  <a href="https://youtu.be/3O_VA_0FIGs">
     <img src="https://img.shields.io/badge/YouTube-3%EB%B6%84%20%EC%99%84%EB%B2%BD%20%EA%B0%80%EC%9D%B4%EB%93%9C%20%EC%98%81%EC%83%81%20%EB%B3%B4%EA%B8%B0-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="DalvitLens 3분 사용 가이드 영상 보기" />
   </a>
 </p>
 
-- **가이드 영상 바로가기**: [https://youtu.be/rGeLjq0yW8I](https://youtu.be/rGeLjq0yW8I)
+- **가이드 영상 바로가기**: [https://youtu.be/3O_VA_0FIGs](https://youtu.be/3O_VA_0FIGs)
 - 핵심 단축키(`F8` 주변 / `F9` 전체 / `F7` 다음 묶음 / `F10` 숨김), 번역 엔진 선택, 1초 단어 교정·자동 용어집, OBS 방송 투명 송출 세팅까지 3분 만에 확인할 수 있습니다.
 
 ---

@@ -42,6 +42,17 @@ $payloadEntries = @(
     "assets/DalvitLens.ico"
 )
 
+$utf8Bom = New-Object System.Text.UTF8Encoding($true)
+foreach ($rel in $payloadEntries) {
+    if ($rel.EndsWith('.ps1')) {
+        $psPath = Join-Path $PSScriptRoot ($rel -replace '/', '\')
+        if (Test-Path -LiteralPath $psPath) {
+            $content = [System.IO.File]::ReadAllText($psPath, [System.Text.Encoding]::UTF8)
+            [System.IO.File]::WriteAllText($psPath, $content, $utf8Bom)
+        }
+    }
+}
+
 $fs = [System.IO.File]::Open($payloadZip, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write)
 try {
     $zip = New-Object System.IO.Compression.ZipArchive($fs, [System.IO.Compression.ZipArchiveMode]::Create, $false)
@@ -84,4 +95,8 @@ if ($setupExit -ne 0) { throw 'DalvitLens-Setup.exe build failed' }
 
 $appInfo   = Get-Item -LiteralPath "$PSScriptRoot\DalvitLens.exe"
 $setupInfo = Get-Item -LiteralPath $setupExe
+$setupHash = (Get-FileHash -LiteralPath $setupExe -Algorithm SHA256).Hash
+$shaFile   = "$setupExe.sha256"
+[System.IO.File]::WriteAllText($shaFile, ("{0}  {1}`n" -f $setupHash, $setupInfo.Name), (New-Object System.Text.UTF8Encoding($false)))
 Write-Output ("BUILD OK: DalvitLens.exe ({0:N1} KB) | dist\DalvitLens-Setup.exe ({1:N1} KB)" -f ($appInfo.Length / 1KB), ($setupInfo.Length / 1KB))
+Write-Output ("SHA-256 : {0}  (saved to dist\DalvitLens-Setup.exe.sha256)" -f $setupHash)

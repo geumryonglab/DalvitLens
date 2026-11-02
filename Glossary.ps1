@@ -72,6 +72,8 @@ function Clean-OcrText([string]$text) {
     $t = [regex]::Replace($t, '\bhits\s+I\s+second\b', 'hits 1 second')
     $t = [regex]::Replace($t, '[\u2022\u00B7]\s*\+', '+')
     $t = [regex]::Replace($t, '\bHP/S\b', 'HP/s')
+    $t = [regex]::Replace($t, '([+-]\d{1,3})96(?=[.,;:\s\)\]]|$)', '$1%')
+    $t = [regex]::Replace($t, '(?i)\b(below|above|under|over|by|to|of|at|is|for|with)\s+(\d{1,3})96(?=[.,;:\s\)\]]|$)', '$1 $2%')
 
     # Separate leading Rarity / Ability type headers merged on the same line
     $t = [regex]::Replace($t, '^(Common|Rare|Epic|Legendary|Unique)\s+(Relic|Item)\s+(?=[A-Z0-9\+])', '$1 $2: ')
@@ -80,6 +82,10 @@ function Clean-OcrText([string]$text) {
 
     # Separate ALL-CAPS event action prefix from sentence body: "TAKE ITEM Get an item..." -> "[TAKE ITEM] Get an item..."
     $t = [regex]::Replace($t, '^([A-Z]{2,}(?:\s+[A-Z]{2,}){0,2})\s+(?=(?:Choose|Get|Gain|Lose|Defeat|Retrain|Rank|Recharge|Your|Heroes|Until)\b)', '[$1] ')
+
+    # Normalize CJK full-width math/stat symbols and collapse stray OCR spaces between CJK glyphs
+    $t = $t.Replace([char]0xFF05, '%').Replace([char]0xFF0B, '+').Replace([char]0xFF0D, '-')
+    $t = [regex]::Replace($t, '(?<=[\u3000-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF])\s+(?=[\u3000-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF])', '')
 
     # Collapse multiple spaces while preserving newlines
     $t = [regex]::Replace($t, '[ \t]{2,}', ' ')
@@ -90,7 +96,11 @@ function Test-ValidOcrBlock([string]$text) {
     if ([string]::IsNullOrWhiteSpace($text)) { return $false }
     $t = $text.Trim()
     # Filter obvious OCR symbol noise / garbled encodings
-    if ($t -match '[\u00E6\u00F6\u00E5\u00C5\u00D8\u00F8\u00DE\u00FE\u00D0\u00F0\u2022@_\\\|~^]{2,}' -or $t -match '^[^a-zA-Z0-9\+\-\[\(]+$') { return $false }
+    if ($t -match '[\u00E6\u00F6\u00E5\u00C5\u00D8\u00F8\u00DE\u00FE\u00D0\u00F0\u2022@_\\\|~^]{2,}') { return $false }
+    # Allow Japanese (Hiragana/Katakana/Kanji) and Chinese (Hanzi) blocks
+    $cjkCount = ([regex]::Matches($t, '[\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]')).Count
+    if ($cjkCount -ge 1) { return $true }
+    if ($t -match '^[^a-zA-Z0-9\+\-\[\(]+$') { return $false }
     $letters = ([regex]::Matches($t, '[a-zA-Z]')).Count
     if ($letters -lt 2) { return $false }
     # Filter tiny 2-3 char broken OCR fragments unless they are known UI labels
@@ -284,10 +294,11 @@ function Learn-GlossaryCorrection {
     if (![string]::IsNullOrWhiteSpace($EngTerm) -and ![string]::IsNullOrWhiteSpace($KorTerm)) {
         $e = $EngTerm.Trim()
         $k = $KorTerm.Trim()
-        if ($e -notmatch '\s' -and $e.Length -le 20 -and $e -cmatch '^[A-Z0-9\s]+$') {
+        $isCjkTerm = ($e -match '[\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]')
+        if (($e -notmatch '\s' -and $e.Length -le 20 -and $e -cmatch '^[A-Z0-9\s]+$') -or ($isCjkTerm -and $e.Length -le 20)) {
             $cfg.exact | Add-Member -NotePropertyName $e.ToUpperInvariant() -NotePropertyValue $k -Force
         }
-        $pat = '\b' + [regex]::Escape($e) + '\b'
+        $pat = if ($isCjkTerm) { [regex]::Escape($e) } else { '\b' + [regex]::Escape($e) + '\b' }
         $updated = $false
         foreach ($entry in $cfg.terms) {
             if ($entry.term -ieq $e -or $entry.pattern -eq $pat) {
@@ -327,6 +338,9 @@ function Learn-GlossaryCorrection {
             @('google-free','GoogleFree-v2')
         )) {
             $cache[$pair[0] + '|' + $pair[1] + '|' + $src] = $new
+            foreach ($langCode in @('en', 'ja', 'zh')) {
+                $cache[$pair[0] + '|' + $pair[1] + '|' + $langCode + '|' + $src] = $new
+            }
         }
         $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
         [System.IO.File]::WriteAllText($cachePath, ($cache | ConvertTo-Json -Depth 4), $utf8NoBom)

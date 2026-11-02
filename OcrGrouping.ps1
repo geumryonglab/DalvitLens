@@ -1,6 +1,19 @@
 ﻿. "$PSScriptRoot\Glossary.ps1"
 
-function Merge-OcrLines($Lines) {
+function Join-OcrFragments([string]$leftText, [string]$rightText) {
+    $l = if ($leftText) { $leftText.TrimEnd() } else { '' }
+    $r = if ($rightText) { $rightText.TrimStart() } else { '' }
+    if (!$l) { return $r }
+    if (!$r) { return $l }
+    # Do not inject spaces between adjacent CJK characters when rejoining wrapped lines
+    if ($l -match '[\u3000-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF]$' -or
+        $r -match '^[\u3000-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF]') {
+        return ($l + $r)
+    }
+    return ($l + ' ' + $r)
+}
+
+function Merge-OcrLines($Lines, [string]$SourceLang = 'en') {
     # OCR can also split one visual row into fragments. Rejoin only when a
     # nearby preceding line spans both fragments (a wrapped paragraph).
     $rows=@()
@@ -19,14 +32,14 @@ function Merge-OcrLines($Lines) {
             if($rowMatch){break}
         }
         if($rowMatch){
-            $rowMatch.text=if($line.x -lt $rowMatch.x){$line.text+' '+$rowMatch.text}else{$rowMatch.text+' '+$line.text}
+            $rowMatch.text=if($line.x -lt $rowMatch.x){Join-OcrFragments $line.text $rowMatch.text}else{Join-OcrFragments $rowMatch.text $line.text}
             $bottom=[Math]::Max($rowMatch.y+$rowMatch.h,$line.y+$line.h)
             $rowMatch.x=$left;$rowMatch.w=$right-$left;$rowMatch.y=[Math]::Min($rowMatch.y,$line.y);$rowMatch.h=$bottom-$rowMatch.y
         }else{$rows += [pscustomobject]@{text=$line.text;x=$line.x;y=$line.y;w=$line.w;h=$line.h}}
     }
     $blocks = @()
     foreach ($line in ($rows | Sort-Object y,x)) {
-        if ($line.text -notmatch '[a-zA-Z]{2}') { continue }
+        if ($line.text -notmatch '[a-zA-Z]{2}' -and $line.text -notmatch '[\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]') { continue }
         $match = $null; $bestGap = [double]::MaxValue
         foreach ($b in $blocks) {
             # Compare with the last line, not the growing paragraph rectangle.
@@ -42,8 +55,8 @@ function Merge-OcrLines($Lines) {
             }
         }
         if ($match) {
-            # A visual wrap is a space, not a translation boundary.
-            $match.text += ' ' + $line.text.Trim()
+            # A visual wrap is a space in Latin, or direct continuation in CJK.
+            $match.text = Join-OcrFragments $match.text $line.text.Trim()
             $right=[Math]::Max($match.x+$match.w,$line.x+$line.w)
             $match.x=[Math]::Min($match.x,$line.x); $match.w=$right-$match.x
             $match.h=[Math]::Max($match.y+$match.h,$line.y+$line.h)-$match.y

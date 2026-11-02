@@ -123,7 +123,7 @@ class LocalTranslationEngine : IDisposable {
     public void Dispose(){Stop();}
 }
 public class Settings {
-    public string backend="exaone", apiKey="";
+    public string backend="exaone", apiKey="", sourceLang="en";
     public int fontSize=13, nearWidth=900, nearHeight=650;
     public bool nearFixed=false;
     public bool tooltipLine=true;
@@ -381,23 +381,32 @@ class MainForm : Form {
     CheckBox tooltipLine;NumericUpDown lineOpacity,tooltipOpacity,obsTooltipOpacity;
     HistoryPanel history=new HistoryPanel(); NotifyIcon tray; Timer timer=new Timer();
     Block[] lastBlocks=new Block[0]; ComboBox correctionSelect=new ComboBox(); TextBox correctionInput=new TextBox(),engTermInput=new TextBox(),korTermInput=new TextBox(); Label glossaryStatus=new Label();
+    MaterialButton langEnBtn,langJaBtn,langZhBtn,installOcrPackBtn; Label ocrLangStatus; ToolStripMenuItem trayLangEn,trayLangJa,trayLangZh;
     readonly HelperLifetime helpers=new HelperLifetime();LocalTranslationEngine localEngine;Label engineState;Process workerHost;
     Process worker; string temp,output; Rectangle capture,display; Point anchor; IntPtr target;
     bool nearMode; double imageScale=1; int generation=0,jobGeneration; DateTime started,shown;
     bool selectingRegion;RegionPicker picker;Label regionSummary;CheckBox fixedRegion;
     public MainForm() {
         SuspendLayout();AutoScaleDimensions=new SizeF(96,96);AutoScaleMode=AutoScaleMode.Dpi;
-        Text="DalvitLens · 게임 화면 번역";ClientSize=new Size(860,900);MinimumSize=new Size(620,600);StartPosition=FormStartPosition.CenterScreen;
+        Text="DalvitLens v1.1.0 · 게임 화면 번역";ClientSize=new Size(860,920);MinimumSize=new Size(620,600);StartPosition=FormStartPosition.CenterScreen;
         var iconPath=Path.Combine(root,"assets","DalvitLens.ico");if(File.Exists(iconPath))Icon=new Icon(iconPath,48,48);
         Font=new Font("맑은 고딕",10);BackColor=MaterialTheme.Surface;ForeColor=MaterialTheme.Text;
         Shown+=(s,e)=>BeginInvoke((Action)(()=>{var area=Screen.FromControl(this).WorkingArea;Size=new Size(Math.Min(Width,area.Width-48),Math.Min(Height,area.Height-48));CenterToScreen();Native.ShowWindow(Handle,5);}));
         try { settings=json.Deserialize<Settings>(File.ReadAllText(Path.Combine(root,"settings.json"))); } catch { settings=new Settings(); }
         if(settings==null)settings=new Settings();
+        if(String.IsNullOrEmpty(settings.sourceLang))settings.sourceLang="en";
         localEngine=new LocalTranslationEngine(root,helpers);
-        BuildModernUi();ResumeLayout(true);
+        var menu=new ContextMenuStrip();menu.Items.Add("설정 / 번역 기록",null,(s,e)=>{Show();WindowState=FormWindowState.Normal;Activate();});
+        menu.Items.Add(new ToolStripSeparator());
+        trayLangEn=new ToolStripMenuItem("원문 언어: 영어 (EN)",null,(s,e)=>SelectSourceLang("en",true));
+        trayLangJa=new ToolStripMenuItem("원문 언어: 일본어 (JA)",null,(s,e)=>SelectSourceLang("ja",true));
+        trayLangZh=new ToolStripMenuItem("원문 언어: 중국어 (ZH)",null,(s,e)=>SelectSourceLang("zh",true));
+        menu.Items.Add(trayLangEn);menu.Items.Add(trayLangJa);menu.Items.Add(trayLangZh);
+        menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add("번역 숨김",null,(s,e)=>Dismiss());menu.Items.Add("종료",null,(s,e)=>{tray.Visible=false;Application.Exit();});
+        BuildModernUi();SelectSourceLang(settings.sourceLang,false);ResumeLayout(true);
         Shown+=(s,e)=>{try{EnsureOcrHost();if(IsLocalBackend(settings.backend))localEngine.Start(settings.backend);}catch(Exception ex){status.Text="번역 엔진 준비 실패: "+ex.Message;}};
-        var menu=new ContextMenuStrip();menu.Items.Add("설정 / 번역 기록",null,(s,e)=>{Show();WindowState=FormWindowState.Normal;Activate();});menu.Items.Add("번역 숨김",null,(s,e)=>Dismiss());menu.Items.Add("종료",null,(s,e)=>{tray.Visible=false;Application.Exit();});
-        tray=new NotifyIcon{Icon=Icon,Text="DalvitLens · F8 주변 / F9 전체 / F10 숨김",ContextMenuStrip=menu,Visible=true};tray.DoubleClick+=(s,e)=>{Show();Activate();};
+        tray=new NotifyIcon{Icon=Icon,Text="DalvitLens v1.1.0 · F8 주변 / F9 전체 / F10 숨김",ContextMenuStrip=menu,Visible=true};tray.DoubleClick+=(s,e)=>{Show();Activate();};
         timer.Interval=120;timer.Tick+=Tick;timer.Start();
         FormClosing+=(s,e)=>{if(e.CloseReason==CloseReason.UserClosing){e.Cancel=true;Hide();}};
         FormClosed+=(s,e)=>{timer.Stop();CancelWorker();if(workerHost!=null){try{if(!workerHost.HasExited)workerHost.Kill();}catch{}workerHost.Dispose();}localEngine.Dispose();helpers.Dispose();if(overlay.Obs!=null)overlay.Obs.Dispose();overlay.Dispose();tray.Dispose();for(int id=1;id<=9;id++)Native.UnregisterHotKey(Handle,id);};
@@ -408,13 +417,21 @@ class MainForm : Form {
         var rootPanel=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=1,RowCount=3,Padding=new Padding(24),BackColor=MaterialTheme.Surface};
         rootPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));rootPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));rootPanel.RowStyles.Add(new RowStyle(SizeType.Percent,100));rootPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));Controls.Add(rootPanel);
         var header=new TableLayoutPanel{Dock=DockStyle.Fill,AutoSize=true,ColumnCount=1,Margin=new Padding(0,0,0,20)};header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
-        var brand=MaterialTheme.Label("DALVITLENS  /  GAME TRANSLATOR",9,true);brand.ForeColor=MaterialTheme.Primary;header.Controls.Add(brand);
+        var brand=MaterialTheme.Label("DALVITLENS v1.1.0  /  GAME TRANSLATOR",9,true);brand.ForeColor=MaterialTheme.Primary;header.Controls.Add(brand);
         header.Controls.Add(MaterialTheme.Label("플레이의 흐름을, 한글로",23,true));header.Controls.Add(MaterialTheme.Label("필요한 순간에 번역하고, 보는 그대로 방송에 공유하세요.",10));
         var chips=new FlowLayoutPanel{Dock=DockStyle.Top,AutoSize=true,WrapContents=true,Margin=new Padding(0,6,0,0)};
         foreach(var s in new[]{"F7  다음 묶음","F8  주변 번역","F9  전체 번역","F10  숨김"}){var chip=MaterialTheme.Label(s,9,true);chip.Dock=DockStyle.None;chip.AutoSize=true;chip.BackColor=MaterialTheme.Field;chip.ForeColor=MaterialTheme.Number;chip.Padding=new Padding(12,7,12,7);chip.Margin=new Padding(0,0,8,6);chips.Controls.Add(chip);}header.Controls.Add(chips);rootPanel.Controls.Add(header,0,0);
         var scroll=new ThemedScrollHost{Dock=DockStyle.Fill,Margin=Padding.Empty};rootPanel.Controls.Add(scroll,0,1);
         var content=new TableLayoutPanel{AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,ColumnCount=1,Margin=Padding.Empty,Padding=new Padding(0,0,10,0)};content.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
-        var translate=MaterialTheme.CardPanel();content.Controls.Add(translate);translate.Controls.Add(MaterialTheme.Label("번역 설정",14,true));translate.Controls.Add(MaterialTheme.Label("영어 OCR · 문단별 번역 · 클릭 통과 오버레이",9));
+        var translate=MaterialTheme.CardPanel();content.Controls.Add(translate);translate.Controls.Add(MaterialTheme.Label("번역 설정",14,true));translate.Controls.Add(MaterialTheme.Label("전처리 대비 강화 OCR · 영/일/중 다국어 스위치 · 문단별 번역 · 클릭 통과 오버레이",9));
+        translate.Controls.Add(MaterialTheme.Label("원문 언어 스위치 (영 / 일 / 중)",9,true));
+        var langRow=new FlowLayoutPanel{AutoSize=true,Dock=DockStyle.Top,WrapContents=true,Margin=new Padding(0,0,0,8)};
+        langEnBtn=new MaterialButton{Text="영어 (EN)",Filled=true,Margin=new Padding(0,0,8,4)};langEnBtn.Click+=(s,e)=>SelectSourceLang("en",true);langRow.Controls.Add(langEnBtn);
+        langJaBtn=new MaterialButton{Text="일본어 (JA)",Margin=new Padding(0,0,8,4)};langJaBtn.Click+=(s,e)=>SelectSourceLang("ja",true);langRow.Controls.Add(langJaBtn);
+        langZhBtn=new MaterialButton{Text="중국어 (ZH)",Margin=new Padding(0,0,8,4)};langZhBtn.Click+=(s,e)=>SelectSourceLang("zh",true);langRow.Controls.Add(langZhBtn);
+        installOcrPackBtn=new MaterialButton{Text="일/중 OCR 언어팩 설치",Margin=new Padding(4,0,0,4)};installOcrPackBtn.Click+=(s,e)=>InstallOcrLanguagePack();langRow.Controls.Add(installOcrPackBtn);
+        translate.Controls.Add(langRow);
+        ocrLangStatus=MaterialTheme.Label("전처리 대비 강화 OCR (DalvitOcrEnhancer: 2x 업스케일·대비 스트레칭·언샤프 마스크) 가동 중",9);ocrLangStatus.ForeColor=MaterialTheme.Secondary;ocrLangStatus.Margin=new Padding(0,0,0,14);translate.Controls.Add(ocrLangStatus);
         backend.DropDownStyle=ComboBoxStyle.DropDownList;backend.FlatStyle=FlatStyle.Flat;backend.BackColor=MaterialTheme.Field;backend.ForeColor=MaterialTheme.Text;backend.Dock=DockStyle.Fill;backend.Margin=new Padding(0,0,0,16);
         backend.DrawMode=DrawMode.OwnerDrawFixed;backend.ItemHeight=30;backend.DrawItem+=(s,e)=>{if(e.Index<0)return;using(var b=new SolidBrush((e.State&DrawItemState.Selected)!=0?MaterialTheme.Outline:MaterialTheme.Field))e.Graphics.FillRectangle(b,e.Bounds);TextRenderer.DrawText(e.Graphics,backend.Items[e.Index].ToString(),backend.Font,new Rectangle(e.Bounds.X+10,e.Bounds.Y,e.Bounds.Width-20,e.Bounds.Height),MaterialTheme.Text,TextFormatFlags.VerticalCenter|TextFormatFlags.SingleLine);};
         backend.Items.AddRange(new object[]{"Google 간편 연결 · 키 없이 사용","Google Cloud · 공식 API","Hy-MT2 1.8B · 빠른 로컬 번역 / GPU","TranslateGemma 4B · 로컬 번역 / GPU","EXAONE 3.5 7.8B · 고품질 로컬 번역 / GPU"});backend.SelectedIndex=settings.backend=="exaone"?4:settings.backend=="gemma"?3:settings.backend=="hymt"?2:settings.backend=="google-official"?1:0;
@@ -472,7 +489,7 @@ class MainForm : Form {
         correctionSelect.SelectedIndexChanged+=(s,e)=>{int idx=correctionSelect.SelectedIndex;if(idx>=0&&idx<lastBlocks.Length)correctionInput.Text=lastBlocks[idx].translated;};
         log.Controls.Add(MaterialTheme.Label("교정할 문단 선택",9));log.Controls.Add(correctionSelect);
         log.Controls.Add(MaterialTheme.Label("번역문 수정 (어색한 단어를 고치면 원문과 비교해 용어집에 자동 등록)",9));log.Controls.Add(InputSurface(correctionInput));
-        log.Controls.Add(MaterialTheme.Label("또는 고정할 용어 직접 추가 (선택 사항 · 예: 영문 Shuriken → 한글 표창)",9));
+        log.Controls.Add(MaterialTheme.Label("또는 고정할 용어 직접 추가 (선택 사항 · 예: Shuriken / 手裏剣 / 手里剑 → 표창)",9));
         var termRow=new TableLayoutPanel{Dock=DockStyle.Top,AutoSize=true,ColumnCount=2,Margin=new Padding(0,0,0,8)};termRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,50));termRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,50));
         var engWrap=InputSurface(engTermInput);engWrap.Margin=new Padding(0,0,6,8);var korWrap=InputSurface(korTermInput);korWrap.Margin=new Padding(6,0,0,8);
         termRow.Controls.Add(engWrap,0,0);termRow.Controls.Add(korWrap,1,0);log.Controls.Add(termRow);
@@ -496,6 +513,49 @@ class MainForm : Form {
         parent.Controls.Add(input);return input;
     }
     void UpdateRegionSummary(){if(regionSummary!=null)regionSummary.Text=settings.nearWidth+" × "+settings.nearHeight+" px  ·  "+(settings.nearFixed?"지정 위치 고정":"마우스 중심으로 따라가기");}
+    void SelectSourceLang(string lang, bool saveNow){
+        string norm = String.IsNullOrEmpty(lang) ? "en" : lang.Trim().ToLowerInvariant();
+        if(norm!="ja"&&norm!="zh")norm="en";
+        settings.sourceLang=norm;
+        if(langEnBtn!=null){langEnBtn.Filled=(norm=="en");langEnBtn.Invalidate();}
+        if(langJaBtn!=null){langJaBtn.Filled=(norm=="ja");langJaBtn.Invalidate();}
+        if(langZhBtn!=null){langZhBtn.Filled=(norm=="zh");langZhBtn.Invalidate();}
+        if(trayLangEn!=null)trayLangEn.Checked=(norm=="en");
+        if(trayLangJa!=null)trayLangJa.Checked=(norm=="ja");
+        if(trayLangZh!=null)trayLangZh.Checked=(norm=="zh");
+        string labelName=norm=="ja"?"일본어 (JA)":norm=="zh"?"중국어 (ZH)":"영어 (EN)";
+        if(ocrLangStatus!=null)ocrLangStatus.Text="전처리 대비 강화 OCR (DalvitOcrEnhancer: 2x 업스케일·대비 스트레칭·언샤프 마스크) · 현재 원문: "+labelName;
+        if(saveNow){
+            Save();
+            status.Text="원문 언어를 "+labelName+" 모드로 전환했습니다.";
+        }
+    }
+    void InstallOcrLanguagePack(){
+        try{
+            var res=MessageBox.Show(
+                "일본어(ja-JP) 및 중국어(zh-CN) Windows OCR 언어팩 자동 설치를 시작할까요?\n\n" +
+                "• [예(Y)]: 관리자 권한(UAC) PowerShell로 일/중 OCR 언어팩을 즉시 설치합니다.\n" +
+                "• [아니오(N)]: Windows '언어 및 지역' 설정 창을 엽니다.",
+                "DalvitLens · 일/중 OCR 언어팩 설치",
+                MessageBoxButtons.YesNoCancel,
+                MessageBoxIcon.Information);
+            if(res==DialogResult.Cancel)return;
+            if(res==DialogResult.Yes){
+                string cmd="Write-Host '[DalvitLens] 일본어(ja-JP) 및 중국어(zh-CN) Windows OCR 언어팩을 설치합니다...' -ForegroundColor Cyan; " +
+                           "Add-WindowsCapability -Online -Name 'Language.OCR~~~ja-JP~0.0.1.0' -ErrorAction SilentlyContinue; " +
+                           "Add-WindowsCapability -Online -Name 'Language.OCR~~~zh-CN~0.0.1.0' -ErrorAction SilentlyContinue; " +
+                           "Write-Host '설치가 완료되었습니다. 창을 닫고 DalvitLens에서 F8로 번역하세요!' -ForegroundColor Green; Read-Host '엔터를 누르면 닫힙니다'";
+                Process.Start(new ProcessStartInfo("powershell.exe","-NoLogo -NoProfile -ExecutionPolicy Bypass -Command \""+cmd+"\""){Verb="runas",UseShellExecute=true});
+                status.Text="관리자 권한으로 일/중 OCR 언어팩 설치 창을 실행했습니다.";
+            } else {
+                Process.Start(new ProcessStartInfo("ms-settings:regionlanguage"){UseShellExecute=true});
+                status.Text="Windows 언어 및 지역 설정 창을 열었습니다.";
+            }
+        }catch(Exception ex){
+            try{Process.Start(new ProcessStartInfo("ms-settings:regionlanguage"){UseShellExecute=true});}catch{}
+            status.Text="언어 설정 열기 안내: "+ex.Message;
+        }
+    }
     void UpdateGlossarySummary(){
         if(glossaryStatus==null)return;
         try{
@@ -618,7 +678,8 @@ class MainForm : Form {
                 history.Text=String.Join(Environment.NewLine+Environment.NewLine,result.blocks.Select((b,i)=>(i+1)+". "+b.text+Environment.NewLine+b.translated));
                 PopulateCorrectionList(result.blocks);
                 UpdateGlossarySummary();
-                if(result.blocks.Length==0){status.Text=String.IsNullOrEmpty(result.error)?"영문을 찾지 못했습니다. F9로 범위를 넓혀보세요.":result.error;tray.ShowBalloonTip(5000,"DalvitLens",status.Text,ToolTipIcon.Warning);}
+                string langEmpty=settings.sourceLang=="ja"?"일본어 텍스트를 찾지 못했습니다. F9로 범위를 넓히거나 원문 언어 스위치를 확인하세요.":settings.sourceLang=="zh"?"중국어 텍스트를 찾지 못했습니다. F9로 범위를 넓히거나 원문 언어 스위치를 확인하세요.":"영문을 찾지 못했습니다. F9로 범위를 넓히거나 원문 언어(영/일/중) 스위치를 확인하세요.";
+                if(result.blocks.Length==0){status.Text=String.IsNullOrEmpty(result.error)?langEmpty:result.error;tray.ShowBalloonTip(5000,"DalvitLens",status.Text,ToolTipIcon.Warning);}
                 else if(jobGeneration==generation && Native.GetForegroundWindow()==target && (!nearMode || Distance(Cursor.Position,anchor)<160)){
                     overlay.ConfigureStyle(settings);overlay.Present(display,result.blocks,capture,anchor,nearMode);shown=DateTime.UtcNow;
                     status.Text=String.IsNullOrEmpty(result.error)?result.blocks.Length+"개 문단 · "+Math.Round((DateTime.UtcNow-started).TotalMilliseconds)+" ms · 저장된 번역 "+result.cacheHits+"개":result.error;

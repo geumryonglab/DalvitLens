@@ -689,7 +689,7 @@ static class SetupInstallerCore {
     internal static void EnsureInitialSettings(string targetDir, string defaultBackend) {
         string settingsPath = Path.Combine(targetDir, "settings.json");
         if (File.Exists(settingsPath)) return;
-        string json = "{\"backend\":\"" + defaultBackend + "\",\"apiKey\":\"\",\"sourceLang\":\"en\",\"fontSize\":13,\"nearWidth\":900,\"nearHeight\":650,\"nearFixed\":false,\"tooltipLine\":true,\"tooltipLineOpacity\":73,\"tooltipOpacity\":85,\"obsTooltipOpacity\":48,\"nearRegionX\":0,\"nearRegionY\":0,\"nearRegionW\":0,\"nearRegionH\":0,\"nearMonitor\":\"\"}";
+        string json = "{\"backend\":\"" + defaultBackend + "\",\"apiKey\":\"\",\"sourceLang\":\"en\",\"fontSize\":13,\"nearWidth\":1280,\"nearHeight\":860,\"nearFixed\":false,\"tooltipLine\":true,\"tooltipLineOpacity\":73,\"tooltipOpacity\":85,\"obsTooltipOpacity\":48,\"nearRegionX\":0,\"nearRegionY\":0,\"nearRegionW\":0,\"nearRegionH\":0,\"nearMonitor\":\"\"}";
         File.WriteAllText(settingsPath, json, new UTF8Encoding(false));
     }
 

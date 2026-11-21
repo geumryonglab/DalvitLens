@@ -79,7 +79,72 @@
                   "FUNKE":  "펀케",
                   "INFECTIOUS BOW":  "감염성 활",
                   "RESERVE":  "대기석 (예비석)",
-                  "CHOOSE HERO":  "영웅 선택하기"
+                  "CHOOSE HERO":  "영웅 선택하기",
+                  "UNITY VESSEL":  "단일 선체",
+                  "ALL IN":  "전체 투입",
+                  "CRYSTAL":  "크리스탈",
+                  "POWER CRYSTAL":  "파워 크리스탈",
+                  "THE RIFT PUPPY":  "구렁덩이 강아지",
+                  "PLAC OLDER":  "더 오래된 것을 배치하세요",
+                  "FLAMING GAUNTLETS":  "불꽃 장갑",
+                  "THE GOLDEN STANDARD":  "황금의 기준",
+                  "DAMACE DEALT":  "딜링 데미지",
+                  "POISON AMPLIFIER":  "독 증폭기",
+                  "THE CAMPFIRE":  "캠프파이어",
+                  "MULTICLASS CONE":  "다중 클래스 콘",
+                  "DIVERGENCE VESSEL":  "분열 혈관",
+                  "DECELERATION CORRUPTOR":  "감속 부패자",
+                  "PLAGUE ASCENDANCY":  "흑사병 상승",
+                  "DECELERATION FLUCTUATOR":  "감속 변동기",
+                  "REYNA":  "레이나",
+                  "GUSTA":  "구스타",
+                  "REROLL":  "리롤 (새로고침)",
+                  "DEADEYE HO":  "데드아이 호",
+                  "REROLL SHO":  "리롤 (새로고침) SHO",
+                  "DEADEYE HOOD":  "데드아이 후드",
+                  "NDANCY":  "엔디캐시",
+                  "SHIELDING PRES":  "방패 방어력 증가",
+                  "PLACE":  "위치",
+                  "POLLEN":  "꽃가루",
+                  "TEAM SIZE":  "팀 규모",
+                  "THE WELL OF TEMPTATIONS":  "유혹의 샘",
+                  "THE DEBTOR":  "채무자",
+                  "HE DEBTO":  "부채인 상태",
+                  "TILLY":  "틸리",
+                  "ATTLE SPEED":  "공격 속도",
+                  "PIMENTA":  "피멘토",
+                  "STARTER KIT":  "초보자 키트",
+                  "RAGOMIR":  "라그미르",
+                  "PERFECT UNITY PRISM":  "완벽한 통일 프리즘",
+                  "BACKLINE":  "백라인",
+                  "BEAST":  "야수",
+                  "INFECTIOUS GAUNTLET":  "감염의 철갑",
+                  "ADAPTIVE SW":  "적응형 SW",
+                  "MULTICLASS CONDUIT":  "다중 클래스 통로",
+                  "LOGAN":  "로건",
+                  "RESERVE ASCENDANCY":  "대기석 우위",
+                  "UNITY MANDATE":  "단일 의지력",
+                  "CROWN OF":  "크라운 오브",
+                  "ASCENSION MANDATE":  "승천 임무",
+                  "ENDLESS MODE LEADERBOARD":  "무한 모드 랭킹 보드",
+                  "GLOBAL":  "전 세계",
+                  "FRIEND LIST":  "친구 목록",
+                  "FLOOR":  "바닥",
+                  "START GAME":  "게임 시작하기",
+                  "DISCORD":  "분열",
+                  "CODEX":  "코드엑스",
+                  "SOUND":  "소리",
+                  "CONTROLLER INPUT":  "컨트롤러 입력",
+                  "TUTORIRL":  "투토리얼",
+                  "RETURN TO GAME":  "게임으로 돌아가기",
+                  "CREDITS":  "크레딧",
+                  "RII RUNES COST 1 ENERGY TO PLAY.":  "All 룬을 사용하기 위해 에너지 1 소모합니다.",
+                  "INSPECT":  "검사하기",
+                  "THE PHOENIX":  "태양의 불사조",
+                  "CHOOSE YOUR DIFFICULTY":  "난이도 선택하세요",
+                  "NORMRL":  "평균치",
+                  "SKILLS":  "기술들",
+                  "BEGIN":  "시작하기"
               },
     "terms":  [
                   {
@@ -306,6 +371,191 @@
                       "pattern":  "\\bBeauty\\ Studio\\b",
                       "term":  "Beauty Studio",
                       "ko":  "뷰티 스튜디오"
+                  },
+                  {
+                      "pattern":  "\\bMana\\ Regen\\b",
+                      "term":  "Mana Regen",
+                      "ko":  "마나 재생"
+                  },
+                  {
+                      "pattern":  "\\bShards\\ Investment\\b",
+                      "term":  "Shards Investment",
+                      "ko":  "샤드"
+                  },
+                  {
+                      "pattern":  "\\bGive\\ Regen\\b",
+                      "term":  "Give Regen",
+                      "ko":  "재생 효과"
+                  },
+                  {
+                      "pattern":  "\\bAttack\\ Range\\b",
+                      "term":  "Attack Range",
+                      "ko":  "공격력 범위"
+                  },
+                  {
+                      "pattern":  "\\bEpic\\ Item\\b",
+                      "term":  "Epic Item",
+                      "ko":  "영웅 아이템"
+                  },
+                  {
+                      "pattern":  "\\bDefense\\ The\\b",
+                      "term":  "Defense The",
+                      "ko":  "방어력"
+                  },
+                  {
+                      "pattern":  "\\bTimes\\ Used\\b",
+                      "term":  "Times Used",
+                      "ko":  "사용 횟수"
+                  },
+                  {
+                      "pattern":  "\\bEMERGENCY\\ REWIND\\b",
+                      "term":  "EMERGENCY REWIND",
+                      "ko":  "긴급 되돌리기"
+                  },
+                  {
+                      "pattern":  "\\bRECHARGE\\b",
+                      "term":  "RECHARGE",
+                      "ko":  "충전 완료"
+                  },
+                  {
+                      "pattern":  "\\bAttack\\ Speed\\b",
+                      "term":  "Attack Speed",
+                      "ko":  "공격 속도"
+                  },
+                  {
+                      "pattern":  "\\bSTARTER\\ KIT\\b",
+                      "term":  "STARTER KIT",
+                      "ko":  "스타터 키트"
+                  },
+                  {
+                      "pattern":  "\\bPOWER\\ CRYSTAL\\b",
+                      "term":  "POWER CRYSTAL",
+                      "ko":  "파워 크리스탈"
+                  },
+                  {
+                      "pattern":  "\\bThe\\ Act\\ Boss\\b",
+                      "term":  "The Act Boss",
+                      "ko":  "보스"
+                  },
+                  {
+                      "pattern":  "\\bBOLD\\b",
+                      "term":  "BOLD",
+                      "ko":  "강조"
+                  },
+                  {
+                      "pattern":  "\\bYour\\ Heroes\\b",
+                      "term":  "Your Heroes",
+                      "ko":  "영웅들"
+                  },
+                  {
+                      "pattern":  "\\bHold\\ Shift\\b",
+                      "term":  "Hold Shift",
+                      "ko":  "Shift 키"
+                  },
+                  {
+                      "pattern":  "\\bEach\\ Hero\\ Mhich\\b",
+                      "term":  "Each Hero Mhich",
+                      "ko":  "각 영웅"
+                  },
+                  {
+                      "pattern":  "\\bArcane\\ Conduit\\b",
+                      "term":  "Arcane Conduit",
+                      "ko":  "마법 통"
+                  },
+                  {
+                      "pattern":  "\\bThe\\ Hero\\b",
+                      "term":  "The Hero",
+                      "ko":  "영웅"
+                  },
+                  {
+                      "pattern":  "\\bRare\\ Item\\b",
+                      "term":  "Rare Item",
+                      "ko":  "희귀 아이템"
+                  },
+                  {
+                      "pattern":  "\\bITEM\\ STARTER\\ KIT\\b",
+                      "term":  "ITEM STARTER KIT",
+                      "ko":  "아이템 스타터 키트"
+                  },
+                  {
+                      "pattern":  "\\bSTATS\\b",
+                      "term":  "STATS",
+                      "ko":  "스탯"
+                  },
+                  {
+                      "pattern":  "\\bSTALL\\ TRIGGER\\b",
+                      "term":  "STALL TRIGGER",
+                      "ko":  "스톨 발동 시"
+                  },
+                  {
+                      "pattern":  "\\bAttack\\ Spe\\b",
+                      "term":  "Attack Spe",
+                      "ko":  "공격 속도"
+                  },
+                  {
+                      "pattern":  "\\bBACKUP\\ ONLY\\b",
+                      "term":  "BACKUP ONLY",
+                      "ko":  "대기석 효과"
+                  },
+                  {
+                      "pattern":  "\\bBoost\\ Starter\\ Kit\\b",
+                      "term":  "Boost Starter Kit",
+                      "ko":  "스타터 키트"
+                  },
+                  {
+                      "pattern":  "\\bFIRST\\ DEBT\\b",
+                      "term":  "FIRST DEBT",
+                      "ko":  "첫 번째 부채"
+                  },
+                  {
+                      "pattern":  "\\bDepartment\\ of\\ Guild\\ Affairs\\b",
+                      "term":  "Department of Guild Affairs",
+                      "ko":  "길드 행정 부서"
+                  },
+                  {
+                      "pattern":  "\\bShard\\ Starter\\ Kit\\b",
+                      "term":  "Shard Starter Kit",
+                      "ko":  "샤드 스타터 키트"
+                  },
+                  {
+                      "pattern":  "\\bMystic\\ Shields\\b",
+                      "term":  "Mystic Shields",
+                      "ko":  "비술사"
+                  },
+                  {
+                      "pattern":  "\\bMagic\\ The\\b",
+                      "term":  "Magic The",
+                      "ko":  "마법 저항력"
+                  },
+                  {
+                      "pattern":  "\\bTrigger\\ Rush\\b",
+                      "term":  "Trigger Rush",
+                      "ko":  "러시"
+                  },
+                  {
+                      "pattern":  "\\bAct\\ Bosses\\b",
+                      "term":  "Act Bosses",
+                      "ko":  "액트 보스"
+                  },
+                  {
+                      "pattern":  "\\bMusic\\ Type\\b",
+                      "term":  "Music Type",
+                      "ko":  "종류"
+                  },
+                  {
+                      "pattern":  "\\bFAST\\ MODE\\b",
+                      "term":  "FAST MODE",
+                      "ko":  "빠른 모드"
+                  },
+                  {
+                      "pattern":  "\\bRll\\b",
+                      "term":  "Rll",
+                      "ko":  "All"
+                  },
+                  {
+                      "pattern":  "\\bPlay\\ the\\ Dark\\b",
+                      "term":  "Play the Dark",
+                      "ko":  "어둠의 룬"
                   }
               ],
     "postReplace":  [
@@ -364,6 +614,10 @@
                         {
                             "pattern":  "수리켄",
                             "replacement":  "표창"
+                        },
+                        {
+                            "pattern":  "RII",
+                            "replacement":  "All"
                         }
                     ]
 }

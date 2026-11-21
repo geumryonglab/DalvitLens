@@ -123,13 +123,39 @@ class LocalTranslationEngine : IDisposable {
     public void Dispose(){Stop();}
 }
 public class Settings {
-    public string backend="exaone", apiKey="", sourceLang="en";
+    public string backend="exaone", apiKey="", sourceLang="en", hudPosition="top-center", nearAnchor="center";
     public int fontSize=13, nearWidth=1280, nearHeight=860;
     public bool nearFixed=false;
     public bool tooltipLine=true;
     public int tooltipLineOpacity=73, tooltipOpacity=100, obsTooltipOpacity=48;
     public double nearRegionX,nearRegionY,nearRegionW,nearRegionH;
     public string nearMonitor="";
+    internal static string NormalizeAnchor(string a){
+        if(String.IsNullOrEmpty(a))return "center";
+        string n=a.Trim().ToLowerInvariant();
+        return (n=="right"||n=="left"||n=="top"||n=="bottom")?n:"center";
+    }
+    internal static string AnchorLabel(string a){
+        switch(NormalizeAnchor(a)){
+            case "right":  return "커서 오른쪽 →";
+            case "left":   return "← 커서 왼쪽";
+            case "top":    return "↑ 커서 위쪽(상)";
+            case "bottom": return "↓ 커서 아래쪽(하)";
+            default:       return "커서 정중앙";
+        }
+    }
+    internal static Rectangle GetCursorRelativeBox(Point cur, int w, int h, string anchorMode){
+        string a=NormalizeAnchor(anchorMode);
+        int padX=Math.Min(72,Math.Max(20,w/10));
+        int padY=Math.Min(64,Math.Max(18,h/10));
+        switch(a){
+            case "right":  return new Rectangle(cur.X-padX, cur.Y-h/2, w, h);
+            case "left":   return new Rectangle(cur.X-w+padX, cur.Y-h/2, w, h);
+            case "top":    return new Rectangle(cur.X-w/2, cur.Y-h+padY, w, h);
+            case "bottom": return new Rectangle(cur.X-w/2, cur.Y-padY, w, h);
+            default:       return new Rectangle(cur.X-w/2, cur.Y-h/2, w, h);
+        }
+    }
 }
 class RegionPicker : Form {
     readonly Bitmap background;readonly Rectangle desktop;Rectangle selected;Point down;Rectangle initial;int handle=-1;bool dragging;Rectangle dragScreen;
@@ -151,7 +177,8 @@ class RegionPicker : Form {
         }else{
             int cx=triggerCursor.X-desktop.X;
             int cy=triggerCursor.Y-desktop.Y;
-            selected=ClampToMonitor(new Rectangle(cx-initW/2,cy-initH/2,initW,initH),dragScreen);
+            string anc=cfg!=null?cfg.nearAnchor:"center";
+            selected=ClampToMonitor(Settings.GetCursorRelativeBox(new Point(cx,cy),initW,initH,anc),dragScreen);
         }
         var toolbar=new FlowLayoutPanel{AutoSize=true,BackColor=MaterialTheme.Card,Padding=new Padding(14,10,14,10),Location=new Point(monitor.X-desktop.X+24,monitor.Y-desktop.Y+24)};
         toolbar.Controls.Add(new Label{AutoSize=true,Text="F8 범위 에디터 · 모서리 드래그 / 마우스 휠 확대·축소 / 안쪽 드래그 이동",ForeColor=MaterialTheme.Text,Font=new Font("맑은 고딕",10,FontStyle.Bold),Margin=new Padding(4,12,12,0)});
@@ -223,7 +250,7 @@ class RangeGuideOverlay : Form {
     internal bool Pinned;
     internal DateTime FlashUntil=DateTime.MinValue;
     Rectangle lastBounds=Rectangle.Empty;
-    int lastW,lastH; bool lastFixed;
+    int lastW,lastH,lastCurX=-1,lastCurY=-1; bool lastFixed; string lastAnchor="";
     public RangeGuideOverlay(){
         FormBorderStyle=FormBorderStyle.None;ShowInTaskbar=false;TopMost=true;
         BackColor=Color.Black;DoubleBuffered=true;
@@ -232,14 +259,17 @@ class RangeGuideOverlay : Form {
     protected override CreateParams CreateParams {
         get { var p=base.CreateParams; p.ExStyle |= 0x80000|0x20|0x8000000|0x80; return p; }
     }
-    internal void UpdateGuide(Rectangle box, int rawW, int rawH, bool isFixed){
+    internal void UpdateGuide(Rectangle box, Point cursorScreen, int rawW, int rawH, bool isFixed, string anchorMode){
         if(box.Width<40||box.Height<40)return;
-        bool sizeChanged=(box.Width!=lastBounds.Width||box.Height!=lastBounds.Height||rawW!=lastW||rawH!=lastH||isFixed!=lastFixed||!Visible);
+        string normAnc=Settings.NormalizeAnchor(anchorMode);
+        int cx=isFixed?(box.Width/2):Math.Max(10,Math.Min(box.Width-10,cursorScreen.X-box.X));
+        int cy=isFixed?(box.Height/2):Math.Max(10,Math.Min(box.Height-10,cursorScreen.Y-box.Y));
+        bool needRedraw=(box.Width!=lastBounds.Width||box.Height!=lastBounds.Height||rawW!=lastW||rawH!=lastH||isFixed!=lastFixed||normAnc!=lastAnchor||Math.Abs(cx-lastCurX)>4||Math.Abs(cy-lastCurY)>4||!Visible);
         Bounds=box;
         if(!Visible)Show();
         Native.SetWindowPos(Handle,new IntPtr(-1),box.X,box.Y,box.Width,box.Height,0x10);
-        if(sizeChanged){
-            lastW=rawW;lastH=rawH;lastFixed=isFixed;
+        if(needRedraw){
+            lastW=rawW;lastH=rawH;lastFixed=isFixed;lastAnchor=normAnc;lastCurX=cx;lastCurY=cy;
             using(var bmp=new Bitmap(box.Width,box.Height,PixelFormat.Format32bppArgb)){
                 using(var g=Graphics.FromImage(bmp)){
                     g.SmoothingMode=System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
@@ -247,23 +277,32 @@ class RangeGuideOverlay : Form {
                     using(var fill=new SolidBrush(Color.FromArgb(26,179,115,255)))
                     using(var border=new Pen(Color.FromArgb(225,MaterialTheme.Primary),2.5f))
                     using(var cornerPen=new Pen(Color.FromArgb(245,MaterialTheme.Number),3.5f))
-                    using(var crossPen=new Pen(Color.FromArgb(160,MaterialTheme.Secondary),1.2f){DashStyle=System.Drawing.Drawing2D.DashStyle.Dash})
-                    using(var badgeBg=new SolidBrush(Color.FromArgb(230,22,20,38)))
-                    using(var f=new Font("맑은 고딕",10f,FontStyle.Bold)){
+                    using(var crossPen=new Pen(Color.FromArgb(165,MaterialTheme.Secondary),1.3f){DashStyle=System.Drawing.Drawing2D.DashStyle.Dash})
+                    using(var badgeBg=new SolidBrush(Color.FromArgb(232,22,20,38)))
+                    using(var f=new Font("맑은 고딕",10f,FontStyle.Bold))
+                    using(var curFont=new Font("맑은 고딕",8.5f,FontStyle.Bold)){
                         var rect=new Rectangle(1,1,box.Width-3,box.Height-3);
                         g.FillRectangle(fill,rect);
                         g.DrawRectangle(border,rect);
                         int cl=Math.Min(28,Math.Min(box.Width,box.Height)/5);
-                        // Corner brackets
                         g.DrawLines(cornerPen,new[]{new Point(2,2+cl),new Point(2,2),new Point(2+cl,2)});
                         g.DrawLines(cornerPen,new[]{new Point(box.Width-3-cl,2),new Point(box.Width-3,2),new Point(box.Width-3,2+cl)});
                         g.DrawLines(cornerPen,new[]{new Point(2,box.Height-3-cl),new Point(2,box.Height-3),new Point(2+cl,box.Height-3)});
                         g.DrawLines(cornerPen,new[]{new Point(box.Width-3-cl,box.Height-3),new Point(box.Width-3,box.Height-3),new Point(box.Width-3,box.Height-3-cl)});
-                        int cx=box.Width/2, cy=box.Height/2;
-                        g.DrawLine(crossPen,12,cy,box.Width-12,cy);
-                        g.DrawLine(crossPen,cx,12,cx,box.Height-12);
-                        using(var cb=new SolidBrush(MaterialTheme.Secondary))g.FillEllipse(cb,cx-5,cy-5,10,10);
-                        string label=(isFixed?"[F8 고정 캡처 영역 가이드]  ":"[F8 마우스 기준 범위 가이드]  ")+rawW+" × "+rawH+" px  (좌우 ±"+(rawW/2)+"px · 상하 ±"+(rawH/2)+"px)";
+                        g.DrawLine(crossPen,10,cy,box.Width-10,cy);
+                        g.DrawLine(crossPen,cx,10,cx,box.Height-10);
+                        using(var cb=new SolidBrush(MaterialTheme.Number))g.FillEllipse(cb,cx-6,cy-6,12,12);
+                        using(var cp=new Pen(MaterialTheme.Surface,2f))g.DrawEllipse(cp,cx-6,cy-6,12,12);
+                        if(!isFixed){
+                            string cTag="커서 기준점";
+                            var cts=g.MeasureString(cTag,curFont);
+                            float ctx=Math.Min(box.Width-cts.Width-14,Math.Max(8,cx+10));
+                            float cty=Math.Min(box.Height-cts.Height-12,Math.Max(44,cy+8));
+                            g.FillRectangle(badgeBg,ctx,cty,cts.Width+10,cts.Height+4);
+                            g.DrawString(cTag,curFont,new SolidBrush(MaterialTheme.Number),ctx+5,cty+2);
+                        }
+                        string ancTitle=isFixed?"고정 캡처 영역":Settings.AnchorLabel(normAnc);
+                        string label="[F8 "+ancTitle+" 가이드]  "+rawW+" × "+rawH+" px";
                         var ts=g.MeasureString(label,f);
                         float bx=Math.Max(8,(box.Width-ts.Width-24)/2f), by=10;
                         g.FillRectangle(badgeBg,bx,by,ts.Width+24,ts.Height+10);
@@ -291,9 +330,95 @@ class RangeGuideOverlay : Form {
         }
     }
 }
+class ProgressHudOverlay : Form {
+    internal DateTime ToastUntil=DateTime.MinValue;
+    int animStep;
+    const int HudW=430, HudH=56;
+    public ProgressHudOverlay(){
+        FormBorderStyle=FormBorderStyle.None;ShowInTaskbar=false;TopMost=true;
+        BackColor=Color.Black;DoubleBuffered=true;Size=new Size(HudW,HudH);
+    }
+    protected override bool ShowWithoutActivation { get { return true; } }
+    protected override CreateParams CreateParams {
+        get { var p=base.CreateParams; p.ExStyle |= 0x80000|0x20|0x8000000|0x80; return p; }
+    }
+    internal void ShowToast(Rectangle mon, string position, string msg, bool warn=false, double seconds=1.6){
+        if(position=="off"){if(Visible)Hide();return;}
+        ToastUntil=DateTime.UtcNow.AddSeconds(seconds);
+        RenderHud(mon,position,msg,warn,false,0);
+    }
+    internal void RenderProgress(Rectangle mon, string position, bool near, string langCode, double elapsedSec){
+        if(position=="off"){if(Visible)Hide();return;}
+        ToastUntil=DateTime.MinValue;
+        animStep=(animStep+1)%12;
+        string langTag=langCode=="ja"?"JA":langCode=="zh"?"ZH":"EN";
+        string modeTag=near?"F8 주변":"F9 전체";
+        string text="달빛렌즈 번역 중…  ["+modeTag+" · "+langTag+"]   "+elapsedSec.ToString("0.0")+"초   (F10 취소)";
+        RenderHud(mon,position,text,false,true,animStep);
+    }
+    void RenderHud(Rectangle mon, string position, string text, bool warn, bool spinning, int step){
+        int x=position=="bottom-right"?(mon.Right-HudW-28):(mon.X+(mon.Width-HudW)/2);
+        int y=position=="bottom-right"?(mon.Bottom-HudH-58):(mon.Y+28);
+        var box=new Rectangle(x,y,HudW,HudH);
+        Bounds=box;
+        if(!Visible)Show();
+        Native.SetWindowPos(Handle,new IntPtr(-1),box.X,box.Y,box.Width,box.Height,0x10);
+        using(var bmp=new Bitmap(HudW,HudH,PixelFormat.Format32bppArgb)){
+            using(var g=Graphics.FromImage(bmp)){
+                g.SmoothingMode=System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                g.TextRenderingHint=System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+                var pillRect=new Rectangle(2,2,HudW-5,HudH-5);
+                Color accentColor=warn?Color.FromArgb(255,190,60):(spinning?MaterialTheme.Primary:MaterialTheme.Secondary);
+                using(var path=MaterialTheme.Shape(pillRect,24))
+                using(var bg=new SolidBrush(Color.FromArgb(236,22,20,38)))
+                using(var pen=new Pen(Color.FromArgb(235,accentColor),2f))
+                using(var f=new Font("맑은 고딕",9.75f,FontStyle.Bold)){
+                    g.FillPath(bg,path);
+                    g.DrawPath(pen,path);
+                    int cx=28, cy=HudH/2;
+                    if(spinning){
+                        using(var trackPen=new Pen(Color.FromArgb(65,MaterialTheme.Secondary),3f))
+                        using(var arcPen=new Pen(MaterialTheme.Number,3.2f)){
+                            g.DrawEllipse(trackPen,cx-10,cy-10,20,20);
+                            g.DrawArc(arcPen,cx-10,cy-10,20,20,(step*30)%360,115);
+                        }
+                        int barW=88;
+                        int barTravel=HudW-56-barW;
+                        double phase=(step%12)/11.0;
+                        int bx=28+(int)Math.Round(Math.Sin(phase*Math.PI)*barTravel);
+                        using(var barBrush=new SolidBrush(Color.FromArgb(190,MaterialTheme.Secondary)))
+                            g.FillRectangle(barBrush,bx,HudH-7,barW,3);
+                    }else{
+                        using(var dotB=new SolidBrush(accentColor))
+                            g.FillEllipse(dotB,cx-6,cy-6,12,12);
+                    }
+                    var textRect=new RectangleF(50,4,HudW-62,HudH-8);
+                    var sf=new StringFormat{Alignment=StringAlignment.Near,LineAlignment=StringAlignment.Center,FormatFlags=StringFormatFlags.NoWrap};
+                    g.DrawString(text,f,Brushes.White,textRect,sf);
+                }
+            }
+            ApplyFrame(bmp);
+        }
+    }
+    void ApplyFrame(Bitmap frame){
+        IntPtr dc=Native.GetDC(IntPtr.Zero),memory=IntPtr.Zero,bitmap=IntPtr.Zero,previous=IntPtr.Zero;
+        try{
+            memory=Native.CreateCompatibleDC(dc);bitmap=frame.GetHbitmap(Color.FromArgb(0));previous=Native.SelectObject(memory,bitmap);
+            var position=new Native.POINT(Left,Top);var size=new Native.SIZE(frame.Width,frame.Height);var source=new Native.POINT(0,0);
+            var blend=new Native.BLEND{op=0,flags=0,alpha=255,format=1};
+            Native.UpdateLayeredWindow(Handle,dc,ref position,ref size,memory,ref source,0,ref blend,2);
+        }finally{
+            if(previous!=IntPtr.Zero)Native.SelectObject(memory,previous);
+            if(bitmap!=IntPtr.Zero)Native.DeleteObject(bitmap);
+            if(memory!=IntPtr.Zero)Native.DeleteDC(memory);
+            if(dc!=IntPtr.Zero)Native.ReleaseDC(IntPtr.Zero,dc);
+        }
+    }
+}
 class NearRangePreviewControl : Control {
     internal int RangeWidth=1280, RangeHeight=860, MonitorWidth=1920, MonitorHeight=1080;
     internal bool IsFixed;
+    internal string AnchorMode="center";
     internal event Action<int,int> RangeChanged;
     int dragHandle=-1; Point dragStart; int startW,startH;
     public NearRangePreviewControl(){
@@ -308,12 +433,32 @@ class NearRangePreviewControl : Control {
         int mw=(int)Math.Round(MonitorWidth*scale), mh=(int)Math.Round(MonitorHeight*scale);
         return new Rectangle((Width-mw)/2,(Height-mh)/2,mw,mh);
     }
+    Point GetCursorOnCanvas(Rectangle mon){
+        string a=Settings.NormalizeAnchor(AnchorMode);
+        int cx=mon.X+mon.Width/2, cy=mon.Y+mon.Height/2;
+        if(a=="right")cx=mon.X+mon.Width*26/100;
+        else if(a=="left")cx=mon.X+mon.Width*74/100;
+        else if(a=="top")cy=mon.Y+mon.Height*74/100;
+        else if(a=="bottom")cy=mon.Y+mon.Height*26/100;
+        return new Point(cx,cy);
+    }
     Rectangle GetBoxOnCanvas(Rectangle mon){
         double sx=(double)mon.Width/Math.Max(1,MonitorWidth);
         double sy=(double)mon.Height/Math.Max(1,MonitorHeight);
         int bw=Math.Min(mon.Width,(int)Math.Round(RangeWidth*sx));
         int bh=Math.Min(mon.Height,(int)Math.Round(RangeHeight*sy));
-        return new Rectangle(mon.X+(mon.Width-bw)/2,mon.Y+(mon.Height-bh)/2,bw,bh);
+        Point cur=GetCursorOnCanvas(mon);
+        string a=Settings.NormalizeAnchor(AnchorMode);
+        int padX=Math.Min(12,Math.Max(4,bw/10));
+        int padY=Math.Min(10,Math.Max(4,bh/10));
+        int bx=cur.X-bw/2, by=cur.Y-bh/2;
+        if(a=="right")bx=cur.X-padX;
+        else if(a=="left")bx=cur.X-bw+padX;
+        else if(a=="top")by=cur.Y-bh+padY;
+        else if(a=="bottom")by=cur.Y-padY;
+        bx=Math.Max(mon.Left,Math.Min(bx,mon.Right-bw));
+        by=Math.Max(mon.Top,Math.Min(by,mon.Bottom-bh));
+        return new Rectangle(bx,by,bw,bh);
     }
     Rectangle[] GetHandles(Rectangle box){
         int x=box.X,y=box.Y,r=box.Right,b=box.Bottom,cx=x+box.Width/2,cy=y+box.Height/2;
@@ -383,35 +528,30 @@ class NearRangePreviewControl : Control {
             }
             g.DrawRectangle(monBorder,mon);
         }
-        // Simulated game tooltip cards around center to give scale reference
         var box=GetBoxOnCanvas(mon);
-        int cx=mon.X+mon.Width/2, cy=mon.Y+mon.Height/2;
-        using(var sampleBg=new SolidBrush(Color.FromArgb(45,90,191,255)))
-        using(var samplePen=new Pen(Color.FromArgb(75,90,191,255),1)){
-            int tw=Math.Max(28,mon.Width/7), th=Math.Max(22,mon.Height/5);
-            var sample1=new Rectangle(cx+8,cy-th/2,tw,th);
-            var sample2=new Rectangle(cx-tw-8,cy-th/3,tw,th);
-            if(mon.Contains(sample1)){g.FillRectangle(sampleBg,sample1);g.DrawRectangle(samplePen,sample1);}
-            if(mon.Contains(sample2)){g.FillRectangle(sampleBg,sample2);g.DrawRectangle(samplePen,sample2);}
-        }
+        Point cur=GetCursorOnCanvas(mon);
+        int cx=Math.Max(box.Left+6,Math.Min(box.Right-6,cur.X));
+        int cy=Math.Max(box.Top+6,Math.Min(box.Bottom-6,cur.Y));
         using(var boxFill=new SolidBrush(Color.FromArgb(52,179,115,255)))
         using(var boxPen=new Pen(MaterialTheme.Primary,2f))
-        using(var crossPen=new Pen(Color.FromArgb(160,MaterialTheme.Secondary),1f){DashStyle=System.Drawing.Drawing2D.DashStyle.Dot})
+        using(var crossPen=new Pen(Color.FromArgb(165,MaterialTheme.Secondary),1.2f){DashStyle=System.Drawing.Drawing2D.DashStyle.Dot})
         using(var handleBrush=new SolidBrush(MaterialTheme.Secondary))
         using(var fBold=new Font("맑은 고딕",9f,FontStyle.Bold))
-        using(var fSmall=new Font("맑은 고딕",8f)){
+        using(var fSmall=new Font("맑은 고딕",8f,FontStyle.Bold)){
             g.FillRectangle(boxFill,box);
             g.DrawRectangle(boxPen,box);
             g.DrawLine(crossPen,box.Left+4,cy,box.Right-4,cy);
             g.DrawLine(crossPen,cx,box.Top+4,cx,box.Bottom-4);
-            using(var centerDot=new SolidBrush(MaterialTheme.Number))g.FillEllipse(centerDot,cx-4,cy-4,8,8);
+            using(var centerDot=new SolidBrush(MaterialTheme.Number))g.FillEllipse(centerDot,cx-5,cy-5,10,10);
+            using(var ringPen=new Pen(MaterialTheme.Surface,1.5f))g.DrawEllipse(ringPen,cx-5,cy-5,10,10);
+            g.DrawString("커서",fSmall,new SolidBrush(MaterialTheme.Number),Math.Min(mon.Right-30,cx+6),Math.Max(mon.Top+22,cy-14));
             foreach(var h in GetHandles(box)){
-                g.FillRectangle( handleBrush,h.X+2,h.Y+2,8,8);
+                g.FillRectangle(handleBrush,h.X+2,h.Y+2,8,8);
             }
             int pctW=(int)Math.Round(RangeWidth*100.0/Math.Max(1,MonitorWidth));
             int pctH=(int)Math.Round(RangeHeight*100.0/Math.Max(1,MonitorHeight));
             string topInfo="모니터 ("+MonitorWidth+"×"+MonitorHeight+") 대비 F8 범위: "+RangeWidth+" × "+RangeHeight+" px ("+pctW+"% × "+pctH+"%)";
-            string subInfo="마우스 기준 좌우 ±"+(RangeWidth/2)+"px · 상하 ±"+(RangeHeight/2)+"px  (모서리 드래그 또는 마우스 휠로 즉시 조절)";
+            string subInfo="배치: ["+Settings.AnchorLabel(AnchorMode)+"]  ·  박스를 드래그하거나 아래 버튼으로 방향/크기를 조절하세요";
             g.DrawString(topInfo,fBold,Brushes.White,mon.X+8,mon.Y+6);
             g.DrawString(subInfo,fSmall,new SolidBrush(MaterialTheme.Secondary),mon.X+8,mon.Bottom-20);
         }
@@ -624,10 +764,14 @@ class MainForm : Form {
     Settings settings;
     Overlay overlay=new Overlay();
     RangeGuideOverlay rangeGuide=new RangeGuideOverlay();
+    ProgressHudOverlay progressHud=new ProgressHudOverlay();
     NearRangePreviewControl rangePreview;
     NumericUpDown nearWidthInput,nearHeightInput;
     MaterialButton presetSmallBtn,presetStdBtn,presetLargeBtn,presetXLargeBtn,toggleGuideBtn;
-    bool syncingRangeControls;
+    MaterialButton anchorCenterBtn,anchorRightBtn,anchorLeftBtn,anchorTopBtn,anchorBottomBtn;
+    MaterialButton hudTopBtn,hudBottomRightBtn,hudOffBtn;
+    ToolStripMenuItem trayHudTop,trayHudBottomRight,trayHudOff;
+    bool syncingRangeControls,captureNearFlag;
     ComboBox backend=new ComboBox(); TextBox key=new TextBox();
     NumericUpDown font=new NumericUpDown(); Label status=new Label();
     CheckBox tooltipLine;NumericUpDown lineOpacity,tooltipOpacity,obsTooltipOpacity;
@@ -640,13 +784,15 @@ class MainForm : Form {
     bool selectingRegion;RegionPicker picker;Label regionSummary;CheckBox fixedRegion;
     public MainForm() {
         SuspendLayout();AutoScaleDimensions=new SizeF(96,96);AutoScaleMode=AutoScaleMode.Dpi;
-        Text="DalvitLens v1.1.0 · 게임 화면 번역";ClientSize=new Size(860,920);MinimumSize=new Size(620,600);StartPosition=FormStartPosition.CenterScreen;
+        Text="DalvitLens v1.2.0 · 게임 화면 번역";ClientSize=new Size(860,920);MinimumSize=new Size(620,600);StartPosition=FormStartPosition.CenterScreen;
         var iconPath=Path.Combine(root,"assets","DalvitLens.ico");if(File.Exists(iconPath))Icon=new Icon(iconPath,48,48);
         Font=new Font("맑은 고딕",10);BackColor=MaterialTheme.Surface;ForeColor=MaterialTheme.Text;
         Shown+=(s,e)=>BeginInvoke((Action)(()=>{var area=Screen.FromControl(this).WorkingArea;Size=new Size(Math.Min(Width,area.Width-48),Math.Min(Height,area.Height-48));CenterToScreen();Native.ShowWindow(Handle,5);}));
         try { settings=json.Deserialize<Settings>(File.ReadAllText(Path.Combine(root,"settings.json"))); } catch { settings=new Settings(); }
         if(settings==null)settings=new Settings();
         if(String.IsNullOrEmpty(settings.sourceLang))settings.sourceLang="en";
+        if(String.IsNullOrEmpty(settings.hudPosition))settings.hudPosition="top-center";
+        settings.nearAnchor=Settings.NormalizeAnchor(settings.nearAnchor);
         if(settings.nearWidth<=0)settings.nearWidth=1280;
         if(settings.nearHeight<=0)settings.nearHeight=860;
         localEngine=new LocalTranslationEngine(root,helpers);
@@ -657,16 +803,21 @@ class MainForm : Form {
         trayLangZh=new ToolStripMenuItem("원문 언어: 중국어 (ZH)",null,(s,e)=>SelectSourceLang("zh",true));
         menu.Items.Add(trayLangEn);menu.Items.Add(trayLangJa);menu.Items.Add(trayLangZh);
         menu.Items.Add(new ToolStripSeparator());
+        trayHudTop=new ToolStripMenuItem("번역 진행 표시: 화면 중앙 상단",null,(s,e)=>SelectHudPosition("top-center",true));
+        trayHudBottomRight=new ToolStripMenuItem("번역 진행 표시: 화면 우측 하단",null,(s,e)=>SelectHudPosition("bottom-right",true));
+        trayHudOff=new ToolStripMenuItem("번역 진행 표시: 숨김",null,(s,e)=>SelectHudPosition("off",true));
+        menu.Items.Add(trayHudTop);menu.Items.Add(trayHudBottomRight);menu.Items.Add(trayHudOff);
+        menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("F8 범위 에디터 열기 (Ctrl+Alt+F8)",null,(s,e)=>ChooseRegion());
         menu.Items.Add("실제 화면 F8 가이드 박스 ON/OFF",null,(s,e)=>ToggleLiveGuide());
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("번역 숨김",null,(s,e)=>Dismiss());menu.Items.Add("종료",null,(s,e)=>{tray.Visible=false;Application.Exit();});
-        BuildModernUi();SelectSourceLang(settings.sourceLang,false);SyncRangeUi();ResumeLayout(true);
+        BuildModernUi();SelectSourceLang(settings.sourceLang,false);SelectHudPosition(settings.hudPosition,false);SyncRangeUi();ResumeLayout(true);
         Shown+=(s,e)=>{try{EnsureOcrHost();if(IsLocalBackend(settings.backend))localEngine.Start(settings.backend);}catch(Exception ex){status.Text="번역 엔진 준비 실패: "+ex.Message;}};
-        tray=new NotifyIcon{Icon=Icon,Text="DalvitLens v1.1.0 · F8 주변 / F9 전체 / F10 숨김",ContextMenuStrip=menu,Visible=true};tray.DoubleClick+=(s,e)=>{Show();Activate();};
+        tray=new NotifyIcon{Icon=Icon,Text="DalvitLens v1.2.0 · F8 주변 / F9 전체 / F10 숨김",ContextMenuStrip=menu,Visible=true};tray.DoubleClick+=(s,e)=>{Show();Activate();};
         timer.Interval=120;timer.Tick+=Tick;timer.Start();
         FormClosing+=(s,e)=>{if(e.CloseReason==CloseReason.UserClosing){e.Cancel=true;Hide();}};
-        FormClosed+=(s,e)=>{timer.Stop();CancelWorker();if(workerHost!=null){try{if(!workerHost.HasExited)workerHost.Kill();}catch{}workerHost.Dispose();}localEngine.Dispose();helpers.Dispose();if(overlay.Obs!=null)overlay.Obs.Dispose();overlay.Dispose();if(rangeGuide!=null)rangeGuide.Dispose();tray.Dispose();for(int id=1;id<=9;id++)Native.UnregisterHotKey(Handle,id);};
+        FormClosed+=(s,e)=>{timer.Stop();CancelWorker();if(workerHost!=null){try{if(!workerHost.HasExited)workerHost.Kill();}catch{}workerHost.Dispose();}localEngine.Dispose();helpers.Dispose();if(overlay.Obs!=null)overlay.Obs.Dispose();overlay.Dispose();if(rangeGuide!=null)rangeGuide.Dispose();if(progressHud!=null)progressHud.Dispose();tray.Dispose();for(int id=1;id<=9;id++)Native.UnregisterHotKey(Handle,id);};
         // Decrypt only in memory; never print or log credentials.
         if(settings.apiKey.StartsWith("dpapi:")) try { key.Text=Encoding.UTF8.GetString(System.Security.Cryptography.ProtectedData.Unprotect(Convert.FromBase64String(settings.apiKey.Substring(6)),null,System.Security.Cryptography.DataProtectionScope.CurrentUser)); } catch { key.Text="";status.Text="저장된 키를 읽지 못했습니다. 다시 입력하세요."; }
     }
@@ -674,7 +825,7 @@ class MainForm : Form {
         var rootPanel=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=1,RowCount=3,Padding=new Padding(24),BackColor=MaterialTheme.Surface};
         rootPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));rootPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));rootPanel.RowStyles.Add(new RowStyle(SizeType.Percent,100));rootPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));Controls.Add(rootPanel);
         var header=new TableLayoutPanel{Dock=DockStyle.Fill,AutoSize=true,ColumnCount=1,Margin=new Padding(0,0,0,20)};header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
-        var brand=MaterialTheme.Label("DALVITLENS v1.1.0  /  GAME TRANSLATOR",9,true);brand.ForeColor=MaterialTheme.Primary;header.Controls.Add(brand);
+        var brand=MaterialTheme.Label("DALVITLENS v1.2.0  /  GAME TRANSLATOR",9,true);brand.ForeColor=MaterialTheme.Primary;header.Controls.Add(brand);
         header.Controls.Add(MaterialTheme.Label("플레이의 흐름을, 한글로",23,true));header.Controls.Add(MaterialTheme.Label("필요한 순간에 번역하고, 보는 그대로 방송에 공유하세요.",10));
         var chips=new FlowLayoutPanel{Dock=DockStyle.Top,AutoSize=true,WrapContents=true,Margin=new Padding(0,6,0,0)};
         foreach(var s in new[]{"F7  다음 묶음","F8  주변 번역","F9  전체 번역","F10  숨김"}){var chip=MaterialTheme.Label(s,9,true);chip.Dock=DockStyle.None;chip.AutoSize=true;chip.BackColor=MaterialTheme.Field;chip.ForeColor=MaterialTheme.Number;chip.Padding=new Padding(12,7,12,7);chip.Margin=new Padding(0,0,8,6);chips.Controls.Add(chip);}header.Controls.Add(chips);rootPanel.Controls.Add(header,0,0);
@@ -689,6 +840,12 @@ class MainForm : Form {
         installOcrPackBtn=new MaterialButton{Text="일/중 OCR 언어팩 설치",Margin=new Padding(4,0,0,4)};installOcrPackBtn.Click+=(s,e)=>InstallOcrLanguagePack();langRow.Controls.Add(installOcrPackBtn);
         translate.Controls.Add(langRow);
         ocrLangStatus=MaterialTheme.Label("전처리 대비 강화 OCR (DalvitOcrEnhancer: 2x 업스케일·대비 스트레칭·언샤프 마스크) 가동 중",9);ocrLangStatus.ForeColor=MaterialTheme.Secondary;ocrLangStatus.Margin=new Padding(0,0,0,14);translate.Controls.Add(ocrLangStatus);
+        translate.Controls.Add(MaterialTheme.Label("번역 진행 중 표시 위치 (인게임 HUD 상태 알림)",9,true));
+        var hudRow=new FlowLayoutPanel{AutoSize=true,Dock=DockStyle.Top,WrapContents=true,Margin=new Padding(0,0,0,14)};
+        hudTopBtn=new MaterialButton{Text="화면 중앙 상단",Filled=true,Margin=new Padding(0,0,8,4)};hudTopBtn.Click+=(s,e)=>SelectHudPosition("top-center",true);hudRow.Controls.Add(hudTopBtn);
+        hudBottomRightBtn=new MaterialButton{Text="화면 우측 하단",Margin=new Padding(0,0,8,4)};hudBottomRightBtn.Click+=(s,e)=>SelectHudPosition("bottom-right",true);hudRow.Controls.Add(hudBottomRightBtn);
+        hudOffBtn=new MaterialButton{Text="표시 안 함",Margin=new Padding(0,0,0,4)};hudOffBtn.Click+=(s,e)=>SelectHudPosition("off",true);hudRow.Controls.Add(hudOffBtn);
+        translate.Controls.Add(hudRow);
         backend.DropDownStyle=ComboBoxStyle.DropDownList;backend.FlatStyle=FlatStyle.Flat;backend.BackColor=MaterialTheme.Field;backend.ForeColor=MaterialTheme.Text;backend.Dock=DockStyle.Fill;backend.Margin=new Padding(0,0,0,16);
         backend.DrawMode=DrawMode.OwnerDrawFixed;backend.ItemHeight=30;backend.DrawItem+=(s,e)=>{if(e.Index<0)return;using(var b=new SolidBrush((e.State&DrawItemState.Selected)!=0?MaterialTheme.Outline:MaterialTheme.Field))e.Graphics.FillRectangle(b,e.Bounds);TextRenderer.DrawText(e.Graphics,backend.Items[e.Index].ToString(),backend.Font,new Rectangle(e.Bounds.X+10,e.Bounds.Y,e.Bounds.Width-20,e.Bounds.Height),MaterialTheme.Text,TextFormatFlags.VerticalCenter|TextFormatFlags.SingleLine);};
         backend.Items.AddRange(new object[]{"Google 간편 연결 · 키 없이 사용","Google Cloud · 공식 API","Hy-MT2 1.8B · 빠른 로컬 번역 / GPU","TranslateGemma 4B · 로컬 번역 / GPU","EXAONE 3.5 7.8B · 고품질 로컬 번역 / GPU"});backend.SelectedIndex=settings.backend=="exaone"?4:settings.backend=="gemma"?3:settings.backend=="hymt"?2:settings.backend=="google-official"?1:0;
@@ -712,9 +869,17 @@ class MainForm : Form {
         translate.Controls.Add(MaterialTheme.Label("F8 캡처 영역 · 가시적 범위 에디터",12,true));
         regionSummary=MaterialTheme.Label("",9);regionSummary.ForeColor=MaterialTheme.Secondary;translate.Controls.Add(regionSummary);
         var monBounds=Screen.PrimaryScreen!=null?Screen.PrimaryScreen.Bounds:new Rectangle(0,0,1920,1080);
-        rangePreview=new NearRangePreviewControl{MonitorWidth=monBounds.Width,MonitorHeight=monBounds.Height,RangeWidth=settings.nearWidth,RangeHeight=settings.nearHeight};
+        rangePreview=new NearRangePreviewControl{MonitorWidth=monBounds.Width,MonitorHeight=monBounds.Height,RangeWidth=settings.nearWidth,RangeHeight=settings.nearHeight,AnchorMode=settings.nearAnchor};
         rangePreview.RangeChanged+=(nw,nh)=>ApplyRangeSize(nw,nh,true);
         translate.Controls.Add(rangePreview);
+        translate.Controls.Add(MaterialTheme.Label("커서 기준 캡처 영역 배치 (마우스 커서 대비 번역 박스 방향)",9));
+        var anchorRow=new FlowLayoutPanel{AutoSize=true,Dock=DockStyle.Top,WrapContents=true,Margin=new Padding(0,0,0,10)};
+        anchorCenterBtn=new MaterialButton{Text="정중앙",Margin=new Padding(0,0,8,4)};anchorCenterBtn.Click+=(s,e)=>SelectNearAnchor("center",true);anchorRow.Controls.Add(anchorCenterBtn);
+        anchorRightBtn=new MaterialButton{Text="오른쪽 →",Margin=new Padding(0,0,8,4)};anchorRightBtn.Click+=(s,e)=>SelectNearAnchor("right",true);anchorRow.Controls.Add(anchorRightBtn);
+        anchorLeftBtn=new MaterialButton{Text="← 왼쪽",Margin=new Padding(0,0,8,4)};anchorLeftBtn.Click+=(s,e)=>SelectNearAnchor("left",true);anchorRow.Controls.Add(anchorLeftBtn);
+        anchorTopBtn=new MaterialButton{Text="↑ 상 (위)",Margin=new Padding(0,0,8,4)};anchorTopBtn.Click+=(s,e)=>SelectNearAnchor("top",true);anchorRow.Controls.Add(anchorTopBtn);
+        anchorBottomBtn=new MaterialButton{Text="↓ 하 (아래)",Margin=new Padding(0,0,0,4)};anchorBottomBtn.Click+=(s,e)=>SelectNearAnchor("bottom",true);anchorRow.Controls.Add(anchorBottomBtn);
+        translate.Controls.Add(anchorRow);
         translate.Controls.Add(MaterialTheme.Label("빠른 크기 프리셋 (마우스 기준 좌우·상하 번역 범위)",9));
         var presetRow=new FlowLayoutPanel{AutoSize=true,Dock=DockStyle.Top,WrapContents=true,Margin=new Padding(0,0,0,10)};
         presetSmallBtn=new MaterialButton{Text="소형 900×650",Margin=new Padding(0,0,8,4)};presetSmallBtn.Click+=(s,e)=>ApplyRangeSize(900,650,true);presetRow.Controls.Add(presetSmallBtn);
@@ -795,11 +960,13 @@ class MainForm : Form {
     }
     void UpdateRegionSummary(){
         if(regionSummary==null)return;
-        regionSummary.Text="현재 F8 범위: "+settings.nearWidth+" × "+settings.nearHeight+" px  (마우스 기준 좌우 ±"+(settings.nearWidth/2)+"px · 상하 ±"+(settings.nearHeight/2)+"px)  ·  "+(settings.nearFixed?"지정 위치 고정":"마우스 중심으로 따라가기");
+        regionSummary.Text="현재 F8 범위: "+settings.nearWidth+" × "+settings.nearHeight+" px  ·  배치: ["+(settings.nearFixed?"지정 위치 고정":Settings.AnchorLabel(settings.nearAnchor))+"]";
     }
     void SyncRangeUi(){
         syncingRangeControls=true;
         try{
+            string anc=Settings.NormalizeAnchor(settings.nearAnchor);
+            settings.nearAnchor=anc;
             UpdateRegionSummary();
             if(nearWidthInput!=null)nearWidthInput.Value=Math.Max(nearWidthInput.Minimum,Math.Min(nearWidthInput.Maximum,settings.nearWidth));
             if(nearHeightInput!=null)nearHeightInput.Value=Math.Max(nearHeightInput.Minimum,Math.Min(nearHeightInput.Maximum,settings.nearHeight));
@@ -808,8 +975,14 @@ class MainForm : Form {
                 rangePreview.MonitorWidth=mb.Width;rangePreview.MonitorHeight=mb.Height;
                 rangePreview.RangeWidth=settings.nearWidth;rangePreview.RangeHeight=settings.nearHeight;
                 rangePreview.IsFixed=settings.nearFixed;
+                rangePreview.AnchorMode=anc;
                 rangePreview.Invalidate();
             }
+            if(anchorCenterBtn!=null){anchorCenterBtn.Filled=(anc=="center");anchorCenterBtn.Invalidate();}
+            if(anchorRightBtn!=null){anchorRightBtn.Filled=(anc=="right");anchorRightBtn.Invalidate();}
+            if(anchorLeftBtn!=null){anchorLeftBtn.Filled=(anc=="left");anchorLeftBtn.Invalidate();}
+            if(anchorTopBtn!=null){anchorTopBtn.Filled=(anc=="top");anchorTopBtn.Invalidate();}
+            if(anchorBottomBtn!=null){anchorBottomBtn.Filled=(anc=="bottom");anchorBottomBtn.Invalidate();}
             if(presetSmallBtn!=null){presetSmallBtn.Filled=(settings.nearWidth==900&&settings.nearHeight==650);presetSmallBtn.Invalidate();}
             if(presetStdBtn!=null){presetStdBtn.Filled=(settings.nearWidth==1280&&settings.nearHeight==860);presetStdBtn.Invalidate();}
             if(presetLargeBtn!=null){presetLargeBtn.Filled=(settings.nearWidth==1600&&settings.nearHeight==1050);presetLargeBtn.Invalidate();}
@@ -820,6 +993,19 @@ class MainForm : Form {
                 toggleGuideBtn.Invalidate();
             }
         }finally{syncingRangeControls=false;}
+    }
+    void SelectNearAnchor(string anchorMode, bool saveNow){
+        settings.nearAnchor=Settings.NormalizeAnchor(anchorMode);
+        if(settings.nearFixed){
+            settings.nearFixed=false;
+            if(fixedRegion!=null)fixedRegion.Checked=false;
+        }
+        SyncRangeUi();
+        if(saveNow){
+            Save();
+            status.Text="F8 캡처 영역 배치를 ["+Settings.AnchorLabel(settings.nearAnchor)+"]으로 설정했습니다.";
+            if(rangeGuide!=null)rangeGuide.FlashUntil=DateTime.UtcNow.AddSeconds(2.2);
+        }
     }
     void ApplyRangeSize(int w, int h, bool flashGuide){
         settings.nearWidth=Math.Max(320,Math.Min(3840,w));
@@ -845,6 +1031,26 @@ class MainForm : Form {
         if(!rangeGuide.Pinned){rangeGuide.FlashUntil=DateTime.MinValue;rangeGuide.Hide();}
         SyncRangeUi();
         status.Text=rangeGuide.Pinned?"실제 화면에 마우스 기준 F8 번역 범위 가이드 박스를 표시합니다. (마우스 클릭 통과)":"실제 화면 F8 가이드 박스를 숨겼습니다.";
+    }
+    void SelectHudPosition(string pos, bool saveNow){
+        string norm=String.IsNullOrEmpty(pos)?"top-center":pos.Trim().ToLowerInvariant();
+        if(norm!="bottom-right"&&norm!="off")norm="top-center";
+        settings.hudPosition=norm;
+        if(hudTopBtn!=null){hudTopBtn.Filled=(norm=="top-center");hudTopBtn.Invalidate();}
+        if(hudBottomRightBtn!=null){hudBottomRightBtn.Filled=(norm=="bottom-right");hudBottomRightBtn.Invalidate();}
+        if(hudOffBtn!=null){hudOffBtn.Filled=(norm=="off");hudOffBtn.Invalidate();}
+        if(trayHudTop!=null)trayHudTop.Checked=(norm=="top-center");
+        if(trayHudBottomRight!=null)trayHudBottomRight.Checked=(norm=="bottom-right");
+        if(trayHudOff!=null)trayHudOff.Checked=(norm=="off");
+        if(saveNow){
+            Save();
+            string posLabel=norm=="bottom-right"?"화면 우측 하단":norm=="off"?"표시 안 함":"화면 중앙 상단";
+            status.Text="번역 진행 중 표시 위치를 ["+posLabel+"]으로 설정했습니다.";
+            if(progressHud!=null){
+                if(norm=="off")progressHud.Hide();
+                else progressHud.ShowToast(Screen.FromControl(this).Bounds,norm,"✔ 번역 진행 중 표시 위치 미리보기  ["+posLabel+"]",false,1.8);
+            }
+        }
     }
     void SelectSourceLang(string lang, bool saveNow){
         string norm = String.IsNullOrEmpty(lang) ? "en" : lang.Trim().ToLowerInvariant();
@@ -971,7 +1177,7 @@ class MainForm : Form {
         try{if(IsLocalBackend(settings.backend))localEngine.Start(settings.backend);else localEngine.Stop();}catch(Exception ex){status.Text="설정 저장됨 · 엔진 시작 실패: "+ex.Message;}
     }
     static bool IsLocalBackend(string name){return name=="hymt"||name=="gemma"||name=="exaone";}
-    void Dismiss(){generation++;overlay.Hide();CancelWorker();status.Text="번역을 숨겼습니다. F8/F9로 다시 번역하세요.";}
+    void Dismiss(){generation++;overlay.Hide();if(progressHud!=null){progressHud.ToastUntil=DateTime.MinValue;progressHud.Hide();}CancelWorker();status.Text="번역을 숨겼습니다. F8/F9로 다시 번역하세요.";}
     void EnsureOcrHost(){if(workerHost!=null&&!workerHost.HasExited)return;if(workerHost!=null)workerHost.Dispose();var psi=new ProcessStartInfo("powershell.exe","-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \""+Path.Combine(root,"Worker.ps1")+"\" -Listen");psi.UseShellExecute=false;psi.CreateNoWindow=true;psi.RedirectStandardInput=true;workerHost=Process.Start(psi);helpers.Add(workerHost);}
     static string AsciiJson(string value){var text=new StringBuilder();foreach(char c in value)if(c>127)text.Append("\\u"+((int)c).ToString("x4"));else text.Append(c);return text.ToString();}
     void FinishJob(){worker=null;CleanTemp();}
@@ -981,14 +1187,23 @@ class MainForm : Form {
         if(worker!=null){status.Text="번역 중입니다. F10으로 취소할 수 있습니다.";return;}
         try {
             started=DateTime.UtcNow;
-            if(IsLocalBackend(settings.backend)){localEngine.Start(settings.backend);if(!localEngine.IsReady){status.Text="번역 모델 준비 중입니다. GPU 준비 완료 후 다시 눌러주세요.";return;}}
+            captureNearFlag=near;
+            if(IsLocalBackend(settings.backend)){
+                localEngine.Start(settings.backend);
+                if(!localEngine.IsReady){
+                    status.Text="번역 모델 준비 중입니다. GPU 준비 완료 후 다시 눌러주세요.";
+                    if(progressHud!=null)progressHud.ShowToast(Screen.FromPoint(Cursor.Position).Bounds,settings.hudPosition,"⏳ AI 번역 모델 GPU 준비 중… 잠시 후 다시 눌러주세요.",true,2.2);
+                    return;
+                }
+            }
             target=Native.GetForegroundWindow(); if(target==Handle){status.Text="먼저 게임 창을 선택한 뒤 단축키를 눌러주세요.";return;}
             if(rangeGuide!=null&&rangeGuide.Visible)rangeGuide.Hide();
+            if(progressHud!=null&&progressHud.Visible)progressHud.Hide();
             overlay.Hide();Native.DwmFlush();generation++;jobGeneration=generation;nearMode=near&&!settings.nearFixed;anchor=Cursor.Position;
             display=Screen.FromPoint(anchor).Bounds; Native.RECT wr;
             var area=display;
             if(Native.GetWindowRect(target,out wr)) {var bounds=Rectangle.FromLTRB(wr.L,wr.T,wr.R,wr.B);var intersection=Rectangle.Intersect(display,bounds);if(intersection.Width>200 && intersection.Height>150) area=intersection;}
-            var nearRect=new Rectangle(anchor.X-settings.nearWidth/2,anchor.Y-settings.nearHeight/2,settings.nearWidth,settings.nearHeight);
+            var nearRect=Settings.GetCursorRelativeBox(anchor,settings.nearWidth,settings.nearHeight,settings.nearAnchor);
             if(near&&settings.nearFixed&&settings.nearRegionW>0){if(Screen.FromPoint(anchor).DeviceName!=settings.nearMonitor)throw new Exception("고정 영역을 지정한 모니터에서 F8을 누르거나 영역을 다시 지정하세요.");nearRect=new Rectangle(display.X+(int)Math.Round(settings.nearRegionX*display.Width),display.Y+(int)Math.Round(settings.nearRegionY*display.Height),(int)Math.Round(settings.nearRegionW*display.Width),(int)Math.Round(settings.nearRegionH*display.Height));}
             capture=near ? Rectangle.Intersect(area,nearRect) : area;
             if(capture.Width<10||capture.Height<10) throw new Exception("캡처 영역이 없습니다. 게임 창 안에 마우스를 놓으세요.");
@@ -999,8 +1214,9 @@ class MainForm : Form {
                 if(imageScale<1)using(var resized=new Bitmap(image,new Size((int)(capture.Width*imageScale),(int)(capture.Height*imageScale))))resized.Save(Path.Combine(temp,"capture.png"),ImageFormat.Png);
                 else image.Save(Path.Combine(temp,"capture.png"),ImageFormat.Png);
             }
+            if(progressHud!=null)progressHud.RenderProgress(display,settings.hudPosition,near,settings.sourceLang,0.0);
             EnsureOcrHost();worker=workerHost;worker.StandardInput.WriteLine(AsciiJson(json.Serialize(new{inputPath=Path.Combine(temp,"capture.png"),outputPath=output,ocrOnly=false})));worker.StandardInput.Flush();status.Text="화면 인식 / 번역 중… F10으로 취소";
-        }catch(Exception ex){CancelWorker();status.Text="캡처 실패: "+ex.Message;tray.ShowBalloonTip(4000,"DalvitLens",status.Text,ToolTipIcon.Warning);}
+        }catch(Exception ex){if(progressHud!=null&&progressHud.Visible)progressHud.Hide();CancelWorker();status.Text="캡처 실패: "+ex.Message;tray.ShowBalloonTip(4000,"DalvitLens",status.Text,ToolTipIcon.Warning);}
     }
     void Tick(object sender,EventArgs e){
         if(engineState!=null&&IsLocalBackend(settings.backend)&&engineState.Text!=localEngine.State)engineState.Text=localEngine.State;
@@ -1009,19 +1225,26 @@ class MainForm : Form {
             if(showGuide){
                 Point cur=Cursor.Position;
                 var mon=Screen.FromPoint(cur).Bounds;
-                var raw=new Rectangle(cur.X-settings.nearWidth/2,cur.Y-settings.nearHeight/2,settings.nearWidth,settings.nearHeight);
+                var raw=Settings.GetCursorRelativeBox(cur,settings.nearWidth,settings.nearHeight,settings.nearAnchor);
                 if(settings.nearFixed&&settings.nearRegionW>0){
                     raw=new Rectangle(mon.X+(int)Math.Round(settings.nearRegionX*mon.Width),mon.Y+(int)Math.Round(settings.nearRegionY*mon.Height),(int)Math.Round(settings.nearRegionW*mon.Width),(int)Math.Round(settings.nearRegionH*mon.Height));
                 }
                 var clamped=Rectangle.Intersect(mon,raw);
-                if(clamped.Width>=40&&clamped.Height>=40)rangeGuide.UpdateGuide(clamped,settings.nearWidth,settings.nearHeight,settings.nearFixed);
+                if(clamped.Width>=40&&clamped.Height>=40)rangeGuide.UpdateGuide(clamped,cur,settings.nearWidth,settings.nearHeight,settings.nearFixed,settings.nearAnchor);
             }else if(rangeGuide.Visible){
                 rangeGuide.Hide();
             }
         }
         if(worker!=null){
-            if(DateTime.UtcNow-started>TimeSpan.FromSeconds(120)){CancelWorker();status.Text="번역 시간이 초과됐습니다. 연결과 모델 설정을 확인하세요.";tray.ShowBalloonTip(4000,"DalvitLens",status.Text,ToolTipIcon.Warning);return;}
-            if(!File.Exists(output)&&!worker.HasExited)return;
+            if(DateTime.UtcNow-started>TimeSpan.FromSeconds(120)){
+                if(progressHud!=null)progressHud.ShowToast(display,settings.hudPosition,"⚠ 번역 시간이 초과됐습니다. 모델 상태를 확인하세요.",true,2.5);
+                CancelWorker();status.Text="번역 시간이 초과됐습니다. 연결과 모델 설정을 확인하세요.";tray.ShowBalloonTip(4000,"DalvitLens",status.Text,ToolTipIcon.Warning);return;
+            }
+            if(!File.Exists(output)&&!worker.HasExited){
+                if(progressHud!=null)progressHud.RenderProgress(display,settings.hudPosition,captureNearFlag,settings.sourceLang,(DateTime.UtcNow-started).TotalSeconds);
+                return;
+            }
+            if(progressHud!=null&&progressHud.Visible)progressHud.Hide();
             try {
                 if(!File.Exists(output))throw new Exception("OCR 처리 결과가 없습니다. Worker.ps1 실행 환경을 확인하세요.");
                 var result=json.Deserialize<Result>(File.ReadAllText(output,Encoding.UTF8));
@@ -1031,7 +1254,11 @@ class MainForm : Form {
                 PopulateCorrectionList(result.blocks);
                 UpdateGlossarySummary();
                 string langEmpty=settings.sourceLang=="ja"?"일본어 텍스트를 찾지 못했습니다. F9로 범위를 넓히거나 원문 언어 스위치를 확인하세요.":settings.sourceLang=="zh"?"중국어 텍스트를 찾지 못했습니다. F9로 범위를 넓히거나 원문 언어 스위치를 확인하세요.":"영문을 찾지 못했습니다. F9로 범위를 넓히거나 원문 언어(영/일/중) 스위치를 확인하세요.";
-                if(result.blocks.Length==0){status.Text=String.IsNullOrEmpty(result.error)?langEmpty:result.error;tray.ShowBalloonTip(5000,"DalvitLens",status.Text,ToolTipIcon.Warning);}
+                if(result.blocks.Length==0){
+                    status.Text=String.IsNullOrEmpty(result.error)?langEmpty:result.error;
+                    if(progressHud!=null)progressHud.ShowToast(display,settings.hudPosition,"⚠ "+(String.IsNullOrEmpty(result.error)?"영역 내 원문 텍스트를 찾지 못했습니다 (F9 전체 권장)":result.error),true,2.2);
+                    tray.ShowBalloonTip(5000,"DalvitLens",status.Text,ToolTipIcon.Warning);
+                }
                 else if(jobGeneration==generation && Native.GetForegroundWindow()==target && (!nearMode || Distance(Cursor.Position,anchor)<160)){
                     overlay.ConfigureStyle(settings);overlay.Present(display,result.blocks,capture,anchor,nearMode);shown=DateTime.UtcNow;
                     status.Text=String.IsNullOrEmpty(result.error)?result.blocks.Length+"개 문단 · "+Math.Round((DateTime.UtcNow-started).TotalMilliseconds)+" ms · 저장된 번역 "+result.cacheHits+"개":result.error;
@@ -1039,6 +1266,8 @@ class MainForm : Form {
                 }else status.Text="화면/마우스 위치가 바뀌어 표시를 생략했습니다. 번역 기록은 남아 있습니다.";
             }catch(Exception ex){status.Text="처리 실패: "+ex.Message;tray.ShowBalloonTip(4000,"DalvitLens",status.Text,ToolTipIcon.Warning);}
             if(worker.HasExited)CancelWorker();else FinishJob();
+        }else if(progressHud!=null&&progressHud.Visible&&DateTime.UtcNow>=progressHud.ToastUntil){
+            progressHud.Hide();
         }
         if(overlay.Visible && (Native.GetForegroundWindow()!=target || Native.IsIconic(target) || (nearMode && Distance(Cursor.Position,anchor)>160) || DateTime.UtcNow-shown>TimeSpan.FromSeconds(45)))overlay.Hide();
     }

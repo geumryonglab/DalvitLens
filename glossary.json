@@ -144,7 +144,13 @@
                   "CHOOSE YOUR DIFFICULTY":  "난이도 선택하세요",
                   "NORMRL":  "평균치",
                   "SKILLS":  "기술들",
-                  "BEGIN":  "시작하기"
+                  "BEGIN":  "시작하기",
+                  "PHOENIX":  "피닉스",
+                  "ENEMY ABILITIES":  "적 능력들",
+                  "HILL GIRNT":  "힐 기런트",
+                  "LIGHT":  "빛의 힘",
+                  "LIGHTBOUND":  "라이트바운드 (Lightbound)",
+                  "PURCHASE":  "구매하기 (Purchasing)"
               },
     "terms":  [
                   {
@@ -556,6 +562,16 @@
                       "pattern":  "\\bPlay\\ the\\ Dark\\b",
                       "term":  "Play the Dark",
                       "ko":  "어둠의 룬"
+                  },
+                  {
+                      "pattern":  "\\bUith\\ Explode\\b",
+                      "term":  "Uith Explode",
+                      "ko":  "Uith가 폭발"
+                  },
+                  {
+                      "pattern":  "\\bBRRRIER\\ PRCT\\b",
+                      "term":  "BRRRIER PRCT",
+                      "ko":  "방어력 증"
                   }
               ],
     "postReplace":  [
@@ -618,6 +634,10 @@
                         {
                             "pattern":  "RII",
                             "replacement":  "All"
+                        },
+                        {
+                            "pattern":  "S",
+                            "replacement":  "5"
                         }
                     ]
 }

@@ -161,38 +161,30 @@ public class Settings {
 }
 class RegionPicker : Form {
     readonly Bitmap background;readonly Rectangle desktop;Rectangle selected;Point down;Rectangle initial;int handle=-1;bool dragging;Rectangle dragScreen;
-    internal bool ReleaseToCursorRequested;
     internal Rectangle SelectedRegion {get{return new Rectangle(desktop.X+selected.X,desktop.Y+selected.Y,selected.Width,selected.Height);}}
     internal RegionPicker(Settings cfg, Point triggerCursor){
         desktop=SystemInformation.VirtualScreen;background=new Bitmap(desktop.Width,desktop.Height);
         using(var g=Graphics.FromImage(background))g.CopyFromScreen(desktop.Location,Point.Empty,desktop.Size);
-        Text="DalvitLens · F8 영역 지정";AutoScaleMode=AutoScaleMode.None;StartPosition=FormStartPosition.Manual;FormBorderStyle=FormBorderStyle.None;Bounds=desktop;TopMost=true;ShowInTaskbar=false;DoubleBuffered=true;KeyPreview=true;Cursor=Cursors.Cross;
+        Text="DalvitLens · F7 지정 영역 설정";AutoScaleMode=AutoScaleMode.None;StartPosition=FormStartPosition.Manual;FormBorderStyle=FormBorderStyle.None;Bounds=desktop;TopMost=true;ShowInTaskbar=false;DoubleBuffered=true;KeyPreview=true;Cursor=Cursors.Cross;
         var monitor=Screen.FromPoint(triggerCursor).Bounds;
         dragScreen=monitor;dragScreen.Offset(-desktop.X,-desktop.Y);
-        if(cfg!=null&&cfg.nearFixed&&cfg.nearRegionW>0){
+        if(cfg!=null&&cfg.nearRegionW>0&&cfg.nearRegionH>0){
             int fx=dragScreen.X+(int)Math.Round(cfg.nearRegionX*dragScreen.Width);
             int fy=dragScreen.Y+(int)Math.Round(cfg.nearRegionY*dragScreen.Height);
-            int fw=Math.Max(60,(int)Math.Round(cfg.nearRegionW*dragScreen.Width));
-            int fh=Math.Max(60,(int)Math.Round(cfg.nearRegionH*dragScreen.Height));
+            int fw=Math.Max(48,(int)Math.Round(cfg.nearRegionW*dragScreen.Width));
+            int fh=Math.Max(48,(int)Math.Round(cfg.nearRegionH*dragScreen.Height));
             selected=ClampToMonitor(new Rectangle(fx,fy,fw,fh),dragScreen);
         }else{
             selected=Rectangle.Empty;
         }
         var toolbar=new FlowLayoutPanel{AutoSize=true,BackColor=MaterialTheme.Card,Padding=new Padding(14,10,14,10),Location=new Point(monitor.X-desktop.X+24,monitor.Y-desktop.Y+24)};
-        toolbar.Controls.Add(new Label{AutoSize=true,Text="🎯 F8 영역 지정 모드  ·  마우스로 번역할 영역을 드래그한 뒤 [영역 지정 저장 (Enter)]",ForeColor=MaterialTheme.Number,Font=new Font("맑은 고딕",10.5f,FontStyle.Bold),Margin=new Padding(4,11,12,0)});
-        var save=new MaterialButton{Text="📌 영역 지정 저장 (Enter)",Filled=true};save.Click+=(s,e)=>AcceptRegion();toolbar.Controls.Add(save);
-        var release=new MaterialButton{Text="🔓 영역 지정 해제 · 커서 기준으로 번역 (R)"};release.Click+=(s,e)=>ReleaseRegion();toolbar.Controls.Add(release);
+        toolbar.Controls.Add(new Label{AutoSize=true,Text="◈ F7 지정 영역 설정 (Ctrl+Alt+F7)  ·  마우스로 F7로 캡처할 고정 영역을 드래그한 뒤 [영역 저장 (Enter)]",ForeColor=MaterialTheme.Number,Font=new Font("맑은 고딕",10.5f,FontStyle.Bold),Margin=new Padding(4,11,12,0)});
+        var save=new MaterialButton{Text="📌 F7 지정 영역 저장 (Enter)",Filled=true};save.Click+=(s,e)=>AcceptRegion();toolbar.Controls.Add(save);
         var cancel=new MaterialButton{Text="취소 (Esc)"};cancel.Click+=(s,e)=>{DialogResult=DialogResult.Cancel;Close();};toolbar.Controls.Add(cancel);Controls.Add(toolbar);
         KeyDown+=(s,e)=>{
             if(e.KeyCode==Keys.Escape){DialogResult=DialogResult.Cancel;Close();}
             else if(e.KeyCode==Keys.Enter)AcceptRegion();
-            else if(e.KeyCode==Keys.R||e.KeyCode==Keys.Delete||e.KeyCode==Keys.Back)ReleaseRegion();
         };
-    }
-    void ReleaseRegion(){
-        ReleaseToCursorRequested=true;
-        DialogResult=DialogResult.OK;
-        Close();
     }
     static Rectangle ClampToMonitor(Rectangle r, Rectangle mon){
         int w=Math.Max(48,Math.Min(mon.Width,r.Width));
@@ -207,12 +199,12 @@ class RegionPicker : Form {
         int stepW=e.Delta>0?80:-80;
         int stepH=e.Delta>0?54:-54;
         int cx=selected.X+selected.Width/2, cy=selected.Y+selected.Height/2;
-        int nw=Math.Max(80,Math.Min(dragScreen.Width,selected.Width+stepW));
-        int nh=Math.Max(60,Math.Min(dragScreen.Height,selected.Height+stepH));
+        int nw=Math.Max(48,Math.Min(dragScreen.Width,selected.Width+stepW));
+        int nh=Math.Max(48,Math.Min(dragScreen.Height,selected.Height+stepH));
         selected=ClampToMonitor(new Rectangle(cx-nw/2,cy-nh/2,nw,nh),dragScreen);
         Invalidate();
     }
-    void AcceptRegion(){if(selected.Width<48||selected.Height<48){System.Media.SystemSounds.Beep.Play();return;}ReleaseToCursorRequested=false;DialogResult=DialogResult.OK;Close();}
+    void AcceptRegion(){if(selected.Width<48||selected.Height<48){System.Media.SystemSounds.Beep.Play();return;}DialogResult=DialogResult.OK;Close();}
     static Rectangle Rect(Point a,Point b){return Rectangle.FromLTRB(Math.Min(a.X,b.X),Math.Min(a.Y,b.Y),Math.Max(a.X,b.X),Math.Max(a.Y,b.Y));}
     Rectangle[] Handles(){if(selected.IsEmpty)return new Rectangle[0];int x=selected.X,y=selected.Y,r=selected.Right,b=selected.Bottom,cx=x+selected.Width/2,cy=y+selected.Height/2;return new[]{new Point(x,y),new Point(cx,y),new Point(r,y),new Point(r,cy),new Point(r,b),new Point(cx,b),new Point(x,b),new Point(x,cy)}.Select(p=>new Rectangle(p.X-10,p.Y-10,20,20)).ToArray();}
     Rectangle CenterMoveGrip(){if(selected.IsEmpty)return Rectangle.Empty;return new Rectangle(selected.X+selected.Width/2-22,selected.Y+selected.Height/2-22,44,44);}
@@ -236,7 +228,7 @@ class RegionPicker : Form {
     protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);e.Graphics.DrawImageUnscaled(background,0,0);using(var dim=new SolidBrush(Color.FromArgb(145,0,0,0)))e.Graphics.FillRectangle(dim,ClientRectangle);
         using(var pen=new Pen(MaterialTheme.Primary,2))using(var guidePen=new Pen(Color.FromArgb(130,MaterialTheme.Secondary),1){DashStyle=System.Drawing.Drawing2D.DashStyle.Dash})using(var accent=new SolidBrush(MaterialTheme.Secondary))using(var handleBg=new SolidBrush(MaterialTheme.Card))using(var shadow=new Pen(Color.FromArgb(140,0,0,0),4))using(var f=new Font("맑은 고딕",11,FontStyle.Bold)){
             if(selected.Width<4||selected.Height<4){
-                string guide="[F8 영역 지정 중]  마우스를 드래그하여 고정 번역할 영역을 그리세요  ·  [R] 키: 영역 지정 해제(커서 기준 번역으로 전환)";
+                string guide="[F7 지정 영역 설정]  마우스를 드래그하여 F7 키로 고정 번역할 영역을 그리세요  (F8 커서 위치 반경 번역과는 별도로 동작합니다)";
                 var gs=e.Graphics.MeasureString(guide,f);
                 int gx=dragScreen.X+(dragScreen.Width-(int)gs.Width-32)/2, gy=dragScreen.Y+110;
                 using(var bg=new SolidBrush(MaterialTheme.Card)){e.Graphics.FillRectangle(bg,gx,gy,gs.Width+32,gs.Height+18);e.Graphics.DrawRectangle(pen,gx,gy,gs.Width+32,gs.Height+18);e.Graphics.DrawString(guide,f,Brushes.White,gx+16,gy+9);}
@@ -251,7 +243,7 @@ class RegionPicker : Form {
             e.Graphics.FillEllipse(handleBg,grip);e.Graphics.DrawEllipse(pen,grip);
             e.Graphics.FillEllipse(accent,cx-5,cy-5,10,10);
             foreach(var r in Handles()){e.Graphics.FillRectangle(handleBg,r.X+3,r.Y+3,14,14);e.Graphics.DrawRectangle(pen,r.X+3,r.Y+3,14,14);var dot=new Rectangle(r.X+7,r.Y+7,6,6);e.Graphics.FillRectangle(accent,dot);}
-            var text="[지정 영역] "+selected.Width+" × "+selected.Height+" px  ·  [Enter] 이 영역 고정 저장  /  [R] 영역 해제(커서 기준 전환)  /  빈 곳 드래그 시 새로 그리기";
+            var text="[F7 지정 영역] "+selected.Width+" × "+selected.Height+" px  ·  [Enter] F7 영역 저장  /  빈 곳 드래그 시 새로 그리기  (F8은 기존대로 커서 반경 번역)";
             var size=e.Graphics.MeasureString(text,f);
             int x=Math.Max(8,Math.Min(selected.X,Width-(int)size.Width-24)),y=selected.Bottom+14;if(y+size.Height+16>Height)y=Math.Max(8,selected.Top-(int)size.Height-24);
             using(var bg=new SolidBrush(MaterialTheme.Card)){e.Graphics.FillRectangle(bg,x,y,size.Width+20,size.Height+12);e.Graphics.DrawRectangle(pen,x,y,size.Width+20,size.Height+12);e.Graphics.DrawString(text,f,Brushes.White,x+10,y+6);}
@@ -334,10 +326,11 @@ class RangeGuideOverlay : Form {
                             g.FillRectangle(badgeBg,ctx,cty,cts.Width+10,cts.Height+4);
                             g.DrawString(cTag,curFont,new SolidBrush(MaterialTheme.Number),ctx+5,cty+2);
                         }
-                        string ancTitle=isFixed?"지정 영역":Settings.AnchorLabel(normAnc);
+                        string keyName=isFixed?"F7 지정 영역":"F8 커서 영역";
+                        string ancTitle=isFixed?"고정 위치":Settings.AnchorLabel(normAnc);
                         string label=isCapturing
-                            ? ("[F8 캡처 영역]  "+box.Width+" × "+box.Height+" px  ·  "+ancTitle+" 번역 중")
-                            : ("[F8 "+ancTitle+" 가이드]  "+rawW+" × "+rawH+" px");
+                            ? ("["+keyName+"]  "+box.Width+" × "+box.Height+" px  ·  "+ancTitle+" 번역 중")
+                            : ("["+keyName+" · "+ancTitle+" 가이드]  "+rawW+" × "+rawH+" px");
                         var ts=g.MeasureString(label,f);
                         float bx=Math.Max(8,(box.Width-ts.Width-24)/2f), by=10;
                         g.FillRectangle(badgeBg,bx,by,ts.Width+24,ts.Height+10);
@@ -368,8 +361,6 @@ class RangeGuideOverlay : Form {
 class ProgressHudOverlay : Form {
     internal DateTime ToastUntil=DateTime.MinValue;
     int animStep;
-    string lastStaticText="";
-    Rectangle lastStaticBox=Rectangle.Empty;
     const int HudW=550, HudH=56;
     public ProgressHudOverlay(){
         FormBorderStyle=FormBorderStyle.None;ShowInTaskbar=false;TopMost=true;
@@ -382,27 +373,14 @@ class ProgressHudOverlay : Form {
     internal void ShowToast(Rectangle mon, string position, string msg, bool warn=false, double seconds=1.6){
         if(position=="off"){if(Visible)Hide();return;}
         ToastUntil=DateTime.UtcNow.AddSeconds(seconds);
-        lastStaticText="";
         RenderHud(mon,position,msg,warn,false,0);
     }
-    internal void RenderFixedModeBanner(Rectangle mon, string position, int w, int h){
-        if(position=="off"){if(Visible)Hide();return;}
-        string text="◈ [F8 영역 지정 중: "+w+"×"+h+" px]   F8 지정영역 번역  ·  해제(커서 기준): Ctrl+Alt+F9";
-        int x=position=="bottom-right"?(mon.Right-HudW-28):(mon.X+(mon.Width-HudW)/2);
-        int y=position=="bottom-right"?(mon.Bottom-HudH-58):(mon.Y+28);
-        var box=new Rectangle(x,y,HudW,HudH);
-        if(Visible && text==lastStaticText && box==lastStaticBox)return;
-        lastStaticText=text;
-        lastStaticBox=box;
-        RenderHud(mon,position,text,false,false,0);
-    }
-    internal void RenderProgress(Rectangle mon, string position, bool near, bool isFixed, string langCode, double elapsedSec){
+    internal void RenderProgress(Rectangle mon, string position, int captureMode, string langCode, double elapsedSec){
         if(position=="off"){if(Visible)Hide();return;}
         ToastUntil=DateTime.MinValue;
-        lastStaticText="";
         animStep=(animStep+1)%12;
         string langTag=langCode=="ja"?"JA":langCode=="zh"?"ZH":"EN";
-        string modeTag=near?(isFixed?"지정영역":"커서기준"):"F9 전체";
+        string modeTag=captureMode==1?"F7 지정영역":captureMode==2?"F8 커서반경":"F9 전체화면";
         string text="달빛렌즈 번역 중…  ["+modeTag+" · "+langTag+"]   "+elapsedSec.ToString("0.0")+"초   (F10 취소)";
         RenderHud(mon,position,text,false,true,animStep);
     }
@@ -467,7 +445,6 @@ class ProgressHudOverlay : Form {
 }
 class NearRangePreviewControl : Control {
     internal int RangeWidth=1280, RangeHeight=860, MonitorWidth=1920, MonitorHeight=1080;
-    internal bool IsFixed;
     internal double FixedRegionX, FixedRegionY, FixedRegionW, FixedRegionH;
     internal string AnchorMode="center";
     internal event Action<int,int> RangeChanged;
@@ -494,15 +471,6 @@ class NearRangePreviewControl : Control {
         return new Point(cx,cy);
     }
     Rectangle GetBoxOnCanvas(Rectangle mon){
-        if(IsFixed && FixedRegionW>0 && FixedRegionH>0){
-            int fx=mon.X+(int)Math.Round(FixedRegionX*mon.Width);
-            int fy=mon.Y+(int)Math.Round(FixedRegionY*mon.Height);
-            int fw=Math.Max(18,Math.Min(mon.Width,(int)Math.Round(FixedRegionW*mon.Width)));
-            int fh=Math.Max(14,Math.Min(mon.Height,(int)Math.Round(FixedRegionH*mon.Height)));
-            fx=Math.Max(mon.Left,Math.Min(fx,mon.Right-fw));
-            fy=Math.Max(mon.Top,Math.Min(fy,mon.Bottom-fh));
-            return new Rectangle(fx,fy,fw,fh);
-        }
         double sx=(double)mon.Width/Math.Max(1,MonitorWidth);
         double sy=(double)mon.Height/Math.Max(1,MonitorHeight);
         int bw=Math.Max(18,Math.Min(mon.Width,(int)Math.Round(RangeWidth*sx)));
@@ -589,32 +557,44 @@ class NearRangePreviewControl : Control {
             g.DrawRectangle(monBorder,mon);
         }
         var box=GetBoxOnCanvas(mon);
-        Point cur=IsFixed ? new Point(box.X+box.Width/2,box.Y+box.Height/2) : GetCursorOnCanvas(mon);
+        Point cur=GetCursorOnCanvas(mon);
         int cx=Math.Max(box.Left+6,Math.Min(box.Right-6,cur.X));
         int cy=Math.Max(box.Top+6,Math.Min(box.Bottom-6,cur.Y));
-        using(var boxFill=new SolidBrush(IsFixed?Color.FromArgb(64,255,205,40):Color.FromArgb(52,179,115,255)))
-        using(var boxPen=new Pen(IsFixed?MaterialTheme.Number:MaterialTheme.Primary,2f))
+        using(var boxFill=new SolidBrush(Color.FromArgb(52,179,115,255)))
+        using(var boxPen=new Pen(MaterialTheme.Primary,2f))
+        using(var fixedFill=new SolidBrush(Color.FromArgb(30,255,205,40)))
+        using(var fixedPen=new Pen(Color.FromArgb(200,MaterialTheme.Number),1.6f){DashStyle=System.Drawing.Drawing2D.DashStyle.Dash})
         using(var crossPen=new Pen(Color.FromArgb(165,MaterialTheme.Secondary),1.2f){DashStyle=System.Drawing.Drawing2D.DashStyle.Dot})
-        using(var handleBrush=new SolidBrush(IsFixed?MaterialTheme.Number:MaterialTheme.Secondary))
+        using(var handleBrush=new SolidBrush(MaterialTheme.Secondary))
         using(var fBold=new Font("맑은 고딕",9f,FontStyle.Bold))
         using(var fSmall=new Font("맑은 고딕",8f,FontStyle.Bold)){
+            if(FixedRegionW>0 && FixedRegionH>0){
+                int fx=mon.X+(int)Math.Round(FixedRegionX*mon.Width);
+                int fy=mon.Y+(int)Math.Round(FixedRegionY*mon.Height);
+                int fw=Math.Max(18,Math.Min(mon.Width,(int)Math.Round(FixedRegionW*mon.Width)));
+                int fh=Math.Max(14,Math.Min(mon.Height,(int)Math.Round(FixedRegionH*mon.Height)));
+                fx=Math.Max(mon.Left,Math.Min(fx,mon.Right-fw));
+                fy=Math.Max(mon.Top,Math.Min(fy,mon.Bottom-fh));
+                var fBox=new Rectangle(fx,fy,fw,fh);
+                g.FillRectangle(fixedFill,fBox);
+                g.DrawRectangle(fixedPen,fBox);
+                g.DrawString("F7 지정영역",fSmall,new SolidBrush(MaterialTheme.Number),fBox.X+4,fBox.Y+3);
+            }
             g.FillRectangle(boxFill,box);
             g.DrawRectangle(boxPen,box);
             g.DrawLine(crossPen,box.Left+4,cy,box.Right-4,cy);
             g.DrawLine(crossPen,cx,box.Top+4,cx,box.Bottom-4);
             using(var centerDot=new SolidBrush(MaterialTheme.Number))g.FillEllipse(centerDot,cx-5,cy-5,10,10);
             using(var ringPen=new Pen(MaterialTheme.Surface,1.5f))g.DrawEllipse(ringPen,cx-5,cy-5,10,10);
-            g.DrawString(IsFixed?"고정":"커서",fSmall,new SolidBrush(MaterialTheme.Number),Math.Min(mon.Right-30,cx+6),Math.Max(mon.Top+22,cy-14));
+            g.DrawString("F8 커서",fSmall,new SolidBrush(MaterialTheme.Number),Math.Min(mon.Right-48,cx+6),Math.Max(mon.Top+22,cy-14));
             foreach(var h in GetHandles(box)){
                 g.FillRectangle(handleBrush,h.X+2,h.Y+2,8,8);
             }
             int pctW=(int)Math.Round(RangeWidth*100.0/Math.Max(1,MonitorWidth));
             int pctH=(int)Math.Round(RangeHeight*100.0/Math.Max(1,MonitorHeight));
-            string topInfo=(IsFixed?"◈ [영역 지정 중] ":"◎ [커서 기준 모드] ")+"모니터 ("+MonitorWidth+"×"+MonitorHeight+") 대비 F8 범위: "+RangeWidth+" × "+RangeHeight+" px ("+pctW+"% × "+pctH+"%)";
-            string subInfo=IsFixed
-                ? "지정 영역 고정 활성  ·  [영역 지정 해제 (Ctrl+Alt+F9)] 또는 방향 버튼 클릭 시 커서 기준 번역으로 전환"
-                : "배치: ["+Settings.AnchorLabel(AnchorMode)+"]  ·  박스를 드래그하거나 아래 버튼으로 방향/크기를 조절하세요";
-            g.DrawString(topInfo,fBold,IsFixed?new SolidBrush(MaterialTheme.Number):Brushes.White,mon.X+8,mon.Y+6);
+            string topInfo="◎ [F8 커서 반경] 모니터 ("+MonitorWidth+"×"+MonitorHeight+") 대비: "+RangeWidth+" × "+RangeHeight+" px ("+pctW+"% × "+pctH+"%)";
+            string subInfo="F8 배치: ["+Settings.AnchorLabel(AnchorMode)+"]  ·  F7 지정영역은 Ctrl+Alt+F7로 별도 설정";
+            g.DrawString(topInfo,fBold,Brushes.White,mon.X+8,mon.Y+6);
             g.DrawString(subInfo,fSmall,new SolidBrush(MaterialTheme.Secondary),mon.X+8,mon.Bottom-20);
         }
     }
@@ -704,7 +684,7 @@ class Overlay : Form {
         using(var g=CreateGraphics()) using(var font=new Font("맑은 고딕",FontSize)) {
             int hidden;
             cards=CardLayout.Arrange(screen.Size,blocks,capture,screen.Location,g,font,out hidden,pageStart);
-            if(hidden>0)Notice="나머지 "+hidden+"개: F7 다음 묶음 · 전체 내용은 번역 기록";
+            if(hidden>0)Notice="나머지 "+hidden+"개: 전체 내용은 번역 기록에서 확인";
         }
         Show(); Native.SetWindowPos(Handle,new IntPtr(-1),0,0,0,0,0x13);
         using(var local=new Bitmap(Width,Height,PixelFormat.Format32bppArgb)){
@@ -736,7 +716,7 @@ class Overlay : Form {
     }
     void DrawHint(Graphics graphics){
         using(var small=new Font("맑은 고딕",10))using(var bg=new SolidBrush(Color.FromArgb(23,29,43))){
-            string tip="DalvitLens  ·  F7 다음  /  F8 주변  /  F9 전체  /  F10 숨김"+(Notice.Length>0 ? "  ·  "+Notice : "");
+            string tip="DalvitLens  ·  F7 지정영역  /  F8 커서반경  /  F9 전체화면  /  F10 숨김  /  Ctrl+Alt+F7 영역지정"+(Notice.Length>0 ? "  ·  "+Notice : "");
             var size=graphics.MeasureString(tip,small,Width-40);
             graphics.FillRectangle(bg,12,Height-size.Height-20,Math.Min(Width-24,size.Width+20),size.Height+12);
             graphics.DrawString(tip,small,Brushes.White,22,Height-size.Height-14);
@@ -829,11 +809,11 @@ class MainForm : Form {
     ProgressHudOverlay progressHud=new ProgressHudOverlay();
     NearRangePreviewControl rangePreview;
     NumericUpDown nearWidthInput,nearHeightInput,guideOpacityInput;
-    MaterialButton presetSmallBtn,presetStdBtn,presetLargeBtn,presetXLargeBtn,toggleGuideBtn,releaseRegionBtn;
+    MaterialButton presetSmallBtn,presetStdBtn,presetLargeBtn,presetXLargeBtn,toggleGuideBtn;
     MaterialButton anchorCenterBtn,anchorRightBtn,anchorLeftBtn,anchorTopBtn,anchorBottomBtn;
     MaterialButton hudTopBtn,hudBottomRightBtn,hudOffBtn;
     ToolStripMenuItem trayHudTop,trayHudBottomRight,trayHudOff,trayCaptureFlash;
-    bool syncingRangeControls,captureNearFlag;
+    bool syncingRangeControls; int activeCaptureMode;
     ComboBox backend=new ComboBox(); TextBox key=new TextBox();
     NumericUpDown font=new NumericUpDown(); Label status=new Label();
     CheckBox tooltipLine;NumericUpDown lineOpacity,tooltipOpacity,obsTooltipOpacity;
@@ -843,7 +823,7 @@ class MainForm : Form {
     readonly HelperLifetime helpers=new HelperLifetime();LocalTranslationEngine localEngine;Label engineState;Process workerHost;
     Process worker; string temp,output; Rectangle capture,display; Point anchor; IntPtr target;
     bool nearMode; double imageScale=1; int generation=0,jobGeneration; DateTime started,shown;
-    bool selectingRegion;RegionPicker picker;Label regionSummary;CheckBox fixedRegion,showCaptureFlashChk;
+    bool selectingRegion;RegionPicker picker;Label regionSummary;CheckBox showCaptureFlashChk;
     public MainForm() {
         SuspendLayout();AutoScaleDimensions=new SizeF(96,96);AutoScaleMode=AutoScaleMode.Dpi;
         Text="DalvitLens v1.3.0 · 게임 화면 번역";ClientSize=new Size(860,920);MinimumSize=new Size(620,600);StartPosition=FormStartPosition.CenterScreen;
@@ -872,16 +852,15 @@ class MainForm : Form {
         trayHudOff=new ToolStripMenuItem("번역 진행 표시: 숨김",null,(s,e)=>SelectHudPosition("off",true));
         menu.Items.Add(trayHudTop);menu.Items.Add(trayHudBottomRight);menu.Items.Add(trayHudOff);
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("📌 F8 고정 영역 지정 (Ctrl+Alt+F8)",null,(s,e)=>ChooseRegion());
-        menu.Items.Add("🔓 영역 지정 해제 · 커서 기준으로 번역 (Ctrl+Alt+F9)",null,(s,e)=>ReleaseFixedRegionToCursorMode());
-        trayCaptureFlash=new ToolStripMenuItem("📸 F8 누를 때 캡처 영역 테두리 잠시 표시",null,(s,e)=>ToggleCaptureFlashOption());
+        menu.Items.Add("📌 F7 지정 영역 설정 (Ctrl+Alt+F7)",null,(s,e)=>ChooseRegion());
+        trayCaptureFlash=new ToolStripMenuItem("📸 F7/F8 누를 때 캡처 영역 테두리 잠시 표시",null,(s,e)=>ToggleCaptureFlashOption());
         menu.Items.Add(trayCaptureFlash);
         menu.Items.Add("실제 화면 F8 가이드 박스 상시 ON/OFF",null,(s,e)=>ToggleLiveGuide());
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("번역 숨김",null,(s,e)=>Dismiss());menu.Items.Add("종료",null,(s,e)=>{tray.Visible=false;Application.Exit();});
         BuildModernUi();SelectSourceLang(settings.sourceLang,false);SelectHudPosition(settings.hudPosition,false);SyncRangeUi();ResumeLayout(true);
         Shown+=(s,e)=>{try{EnsureOcrHost();if(IsLocalBackend(settings.backend))localEngine.Start(settings.backend);}catch(Exception ex){status.Text="번역 엔진 준비 실패: "+ex.Message;}};
-        tray=new NotifyIcon{Icon=Icon,Text="DalvitLens v1.3.0 · F8 주변 / F9 전체 / F10 숨김",ContextMenuStrip=menu,Visible=true};tray.DoubleClick+=(s,e)=>{Show();Activate();};
+        tray=new NotifyIcon{Icon=Icon,Text="DalvitLens v1.3.0 · F7 지정영역 / F8 커서반경 / F9 전체 / F10 숨김",ContextMenuStrip=menu,Visible=true};tray.DoubleClick+=(s,e)=>{Show();Activate();};
         timer.Interval=120;timer.Tick+=Tick;timer.Start();
         FormClosing+=(s,e)=>{if(e.CloseReason==CloseReason.UserClosing){e.Cancel=true;Hide();}};
         FormClosed+=(s,e)=>{timer.Stop();CancelWorker();if(workerHost!=null){try{if(!workerHost.HasExited)workerHost.Kill();}catch{}workerHost.Dispose();}localEngine.Dispose();helpers.Dispose();if(overlay.Obs!=null)overlay.Obs.Dispose();overlay.Dispose();if(rangeGuide!=null)rangeGuide.Dispose();if(progressHud!=null)progressHud.Dispose();tray.Dispose();for(int id=1;id<=10;id++)Native.UnregisterHotKey(Handle,id);};
@@ -895,7 +874,7 @@ class MainForm : Form {
         var brand=MaterialTheme.Label("DALVITLENS v1.3.0  /  GAME TRANSLATOR",9,true);brand.ForeColor=MaterialTheme.Primary;header.Controls.Add(brand);
         header.Controls.Add(MaterialTheme.Label("플레이의 흐름을, 한글로",23,true));header.Controls.Add(MaterialTheme.Label("필요한 순간에 번역하고, 보는 그대로 방송에 공유하세요.",10));
         var chips=new FlowLayoutPanel{Dock=DockStyle.Top,AutoSize=true,WrapContents=true,Margin=new Padding(0,6,0,0)};
-        foreach(var s in new[]{"F7  다음 묶음","F8  주변/지정 번역","F9  전체 번역","F10  숨김","Ctrl+Alt+F8  영역 지정","Ctrl+Alt+F9  영역 해제(커서 기준)"}){var chip=MaterialTheme.Label(s,9,true);chip.Dock=DockStyle.None;chip.AutoSize=true;chip.BackColor=MaterialTheme.Field;chip.ForeColor=MaterialTheme.Number;chip.Padding=new Padding(12,7,12,7);chip.Margin=new Padding(0,0,8,6);chips.Controls.Add(chip);}header.Controls.Add(chips);rootPanel.Controls.Add(header,0,0);
+        foreach(var s in new[]{"F7  지정 영역 번역","Ctrl+Alt+F7  F7 영역 지정","F8  커서 반경 번역","F9  전체 화면 번역","F10  번역 숨김"}){var chip=MaterialTheme.Label(s,9,true);chip.Dock=DockStyle.None;chip.AutoSize=true;chip.BackColor=MaterialTheme.Field;chip.ForeColor=MaterialTheme.Number;chip.Padding=new Padding(12,7,12,7);chip.Margin=new Padding(0,0,8,6);chips.Controls.Add(chip);}header.Controls.Add(chips);rootPanel.Controls.Add(header,0,0);
         var scroll=new ThemedScrollHost{Dock=DockStyle.Fill,Margin=Padding.Empty};rootPanel.Controls.Add(scroll,0,1);
         var content=new TableLayoutPanel{AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,ColumnCount=1,Margin=Padding.Empty,Padding=new Padding(0,0,10,0)};content.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
         var translate=MaterialTheme.CardPanel();content.Controls.Add(translate);translate.Controls.Add(MaterialTheme.Label("번역 설정",14,true));translate.Controls.Add(MaterialTheme.Label("전처리 대비 강화 OCR · 영/일/중 다국어 스위치 · 문단별 번역 · 클릭 통과 오버레이",9));
@@ -933,13 +912,13 @@ class MainForm : Form {
         engineActions.Controls.Add(installModels);
         var restartEngine=new MaterialButton{Text="로컬 엔진 다시 시작",Margin=Padding.Empty};restartEngine.Click+=(s,e)=>{try{Save();localEngine.Stop();localEngine.Start(settings.backend);}catch(Exception ex){status.Text="엔진 시작 실패: "+ex.Message;}};
         engineActions.Controls.Add(restartEngine);translate.Controls.Add(engineActions);
-        translate.Controls.Add(MaterialTheme.Label("F8 캡처 영역 · 가시적 범위 에디터",12,true));
+        translate.Controls.Add(MaterialTheme.Label("F8 커서 반경 에디터 & F7 지정 영역 설정",12,true));
         regionSummary=MaterialTheme.Label("",9);regionSummary.ForeColor=MaterialTheme.Secondary;translate.Controls.Add(regionSummary);
         var monBounds=Screen.PrimaryScreen!=null?Screen.PrimaryScreen.Bounds:new Rectangle(0,0,1920,1080);
         rangePreview=new NearRangePreviewControl{MonitorWidth=monBounds.Width,MonitorHeight=monBounds.Height,RangeWidth=settings.nearWidth,RangeHeight=settings.nearHeight,AnchorMode=settings.nearAnchor};
         rangePreview.RangeChanged+=(nw,nh)=>ApplyRangeSize(nw,nh,true);
         translate.Controls.Add(rangePreview);
-        translate.Controls.Add(MaterialTheme.Label("커서 기준 캡처 영역 배치 (마우스 커서 대비 번역 박스 방향)",9));
+        translate.Controls.Add(MaterialTheme.Label("F8 커서 기준 캡처 영역 배치 (마우스 커서 대비 번역 박스 방향)",9));
         var anchorRow=new FlowLayoutPanel{AutoSize=true,Dock=DockStyle.Top,WrapContents=true,Margin=new Padding(0,0,0,10)};
         anchorCenterBtn=new MaterialButton{Text="정중앙",Margin=new Padding(0,0,8,4)};anchorCenterBtn.Click+=(s,e)=>SelectNearAnchor("center",true);anchorRow.Controls.Add(anchorCenterBtn);
         anchorRightBtn=new MaterialButton{Text="오른쪽 →",Margin=new Padding(0,0,8,4)};anchorRightBtn.Click+=(s,e)=>SelectNearAnchor("right",true);anchorRow.Controls.Add(anchorRightBtn);
@@ -947,7 +926,7 @@ class MainForm : Form {
         anchorTopBtn=new MaterialButton{Text="↑ 상 (위)",Margin=new Padding(0,0,8,4)};anchorTopBtn.Click+=(s,e)=>SelectNearAnchor("top",true);anchorRow.Controls.Add(anchorTopBtn);
         anchorBottomBtn=new MaterialButton{Text="↓ 하 (아래)",Margin=new Padding(0,0,0,4)};anchorBottomBtn.Click+=(s,e)=>SelectNearAnchor("bottom",true);anchorRow.Controls.Add(anchorBottomBtn);
         translate.Controls.Add(anchorRow);
-        translate.Controls.Add(MaterialTheme.Label("빠른 크기 프리셋 (마우스 기준 좌우·상하 번역 범위)",9));
+        translate.Controls.Add(MaterialTheme.Label("F8 빠른 크기 프리셋 (마우스 기준 좌우·상하 번역 범위)",9));
         var presetRow=new FlowLayoutPanel{AutoSize=true,Dock=DockStyle.Top,WrapContents=true,Margin=new Padding(0,0,0,10)};
         presetSmallBtn=new MaterialButton{Text="소형 900×650",Margin=new Padding(0,0,8,4)};presetSmallBtn.Click+=(s,e)=>ApplyRangeSize(900,650,true);presetRow.Controls.Add(presetSmallBtn);
         presetStdBtn=new MaterialButton{Text="표준 1280×860",Margin=new Padding(0,0,8,4)};presetStdBtn.Click+=(s,e)=>ApplyRangeSize(1280,860,true);presetRow.Controls.Add(presetStdBtn);
@@ -958,8 +937,8 @@ class MainForm : Form {
         translate.Controls.Add(presetRow);
         var sizeGrid=new TableLayoutPanel{Dock=DockStyle.Top,AutoSize=true,ColumnCount=2,Margin=new Padding(0,0,0,12)};
         sizeGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,50));sizeGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,50));
-        sizeGrid.Controls.Add(MaterialTheme.Label("가로 범위 (Width px · 마우스 좌우 합계)",9),0,0);
-        sizeGrid.Controls.Add(MaterialTheme.Label("세로 범위 (Height px · 마우스 상하 합계)",9),1,0);
+        sizeGrid.Controls.Add(MaterialTheme.Label("F8 가로 범위 (Width px · 마우스 좌우 합계)",9),0,0);
+        sizeGrid.Controls.Add(MaterialTheme.Label("F8 세로 범위 (Height px · 마우스 상하 합계)",9),1,0);
         nearWidthInput=new NumericUpDown{Minimum=48,Maximum=3840,Increment=40,Value=Math.Max(48,Math.Min(3840,settings.nearWidth)),BackColor=MaterialTheme.Field,ForeColor=MaterialTheme.Text,BorderStyle=BorderStyle.FixedSingle,Font=Font,Dock=DockStyle.Fill,Margin=new Padding(0,0,8,0)};
         nearHeightInput=new NumericUpDown{Minimum=48,Maximum=2160,Increment=40,Value=Math.Max(48,Math.Min(2160,settings.nearHeight)),BackColor=MaterialTheme.Field,ForeColor=MaterialTheme.Text,BorderStyle=BorderStyle.FixedSingle,Font=Font,Dock=DockStyle.Fill,Margin=new Padding(8,0,0,0)};
         nearWidthInput.ValueChanged+=(s,e)=>{if(!syncingRangeControls)ApplyRangeSize((int)nearWidthInput.Value,(int)nearHeightInput.Value,true);};
@@ -967,19 +946,17 @@ class MainForm : Form {
         sizeGrid.Controls.Add(nearWidthInput,0,1);sizeGrid.Controls.Add(nearHeightInput,1,1);
         translate.Controls.Add(sizeGrid);
         var regionActions=new FlowLayoutPanel{AutoSize=true,Dock=DockStyle.Top,WrapContents=true,Margin=new Padding(0,0,0,12)};
-        var chooseRegion=new MaterialButton{Text="📌 화면에서 고정 영역 지정 (Ctrl+Alt+F8)",Filled=true,Margin=new Padding(0,0,8,4)};chooseRegion.Click+=(s,e)=>ChooseRegion();regionActions.Controls.Add(chooseRegion);
-        releaseRegionBtn=new MaterialButton{Text="🔓 영역 지정 해제 · 커서 기준으로 번역 (Ctrl+Alt+F9)",Margin=new Padding(0,0,8,4)};releaseRegionBtn.Click+=(s,e)=>ReleaseFixedRegionToCursorMode();regionActions.Controls.Add(releaseRegionBtn);
-        toggleGuideBtn=new MaterialButton{Text="실제 화면 가이드 박스: OFF",Margin=new Padding(0,0,8,4)};toggleGuideBtn.Click+=(s,e)=>ToggleLiveGuide();regionActions.Controls.Add(toggleGuideBtn);
-        var resetRegion=new MaterialButton{Text="표준 크기 초기화",Margin=new Padding(0,0,0,4)};resetRegion.Click+=(s,e)=>{settings.nearRegionW=0;settings.nearRegionH=0;settings.nearFixed=false;if(fixedRegion!=null)fixedRegion.Checked=false;ApplyRangeSize(1280,860,true);};regionActions.Controls.Add(resetRegion);translate.Controls.Add(regionActions);
-        showCaptureFlashChk=new CheckBox{Text="📸 F8 누를 때 캡처되는 영역 테두리를 잠시 보여주고 번역 (어떤 영역이 캡처되는지 화면에서 즉시 인지)",AutoSize=true,Dock=DockStyle.Top,ForeColor=MaterialTheme.Secondary,Checked=settings.showCaptureFlash,Margin=new Padding(0,0,0,8)};
-        showCaptureFlashChk.CheckedChanged+=(s,e)=>{if(syncingRangeControls)return;settings.showCaptureFlash=showCaptureFlashChk.Checked;Save();SyncRangeUi();status.Text=settings.showCaptureFlash?"📸 F8 입력 시 캡처되는 영역 테두리를 잠시 표시하고 번역합니다.":"F8 입력 시 캡처 영역 테두리 표시를 껐습니다.";if(settings.showCaptureFlash&&rangeGuide!=null)rangeGuide.FlashUntil=DateTime.UtcNow.AddSeconds(1.8);};
+        var chooseRegion=new MaterialButton{Text="📌 F7 지정 영역 화면에서 설정 (Ctrl+Alt+F7)",Filled=true,Margin=new Padding(0,0,8,4)};chooseRegion.Click+=(s,e)=>ChooseRegion();regionActions.Controls.Add(chooseRegion);
+        toggleGuideBtn=new MaterialButton{Text="실제 화면 F8 가이드 박스: OFF",Margin=new Padding(0,0,8,4)};toggleGuideBtn.Click+=(s,e)=>ToggleLiveGuide();regionActions.Controls.Add(toggleGuideBtn);
+        var resetRegion=new MaterialButton{Text="F8 표준 크기 초기화",Margin=new Padding(0,0,0,4)};resetRegion.Click+=(s,e)=>ApplyRangeSize(1280,860,true);regionActions.Controls.Add(resetRegion);translate.Controls.Add(regionActions);
+        showCaptureFlashChk=new CheckBox{Text="📸 F7 / F8 누를 때 캡처되는 영역 테두리를 잠시 보여주고 번역 (어떤 영역이 캡처되는지 화면에서 즉시 인지)",AutoSize=true,Dock=DockStyle.Top,ForeColor=MaterialTheme.Secondary,Checked=settings.showCaptureFlash,Margin=new Padding(0,0,0,10)};
+        showCaptureFlashChk.CheckedChanged+=(s,e)=>{if(syncingRangeControls)return;settings.showCaptureFlash=showCaptureFlashChk.Checked;Save();SyncRangeUi();status.Text=settings.showCaptureFlash?"📸 F7/F8 입력 시 캡처되는 영역 테두리를 잠시 표시하고 번역합니다.":"F7/F8 입력 시 캡처 영역 테두리 표시를 껐습니다.";if(settings.showCaptureFlash&&rangeGuide!=null)rangeGuide.FlashUntil=DateTime.UtcNow.AddSeconds(1.8);};
         translate.Controls.Add(showCaptureFlashChk);
-        fixedRegion=new CheckBox{Text="선택한 위치에 고정 [영역 지정 중] (체크 해제 또는 Ctrl+Alt+F9 입력 시 마우스 커서 기준 번역으로 전환)",AutoSize=true,Dock=DockStyle.Top,ForeColor=MaterialTheme.Text,Checked=settings.nearFixed,Margin=new Padding(0,0,0,10)};fixedRegion.CheckedChanged+=(s,e)=>{if(syncingRangeControls)return;if(!fixedRegion.Checked){ReleaseFixedRegionToCursorMode();return;}if(settings.nearRegionW<=0){var mb=Screen.FromControl(this).Bounds;settings.nearRegionW=Math.Min(1.0,settings.nearWidth/(double)mb.Width);settings.nearRegionH=Math.Min(1.0,settings.nearHeight/(double)mb.Height);settings.nearRegionX=(1.0-settings.nearRegionW)/2.0;settings.nearRegionY=(1.0-settings.nearRegionH)/2.0;settings.nearMonitor=Screen.FromControl(this).DeviceName;}settings.nearFixed=true;Save();SyncRangeUi();};translate.Controls.Add(fixedRegion);
-        translate.Controls.Add(MaterialTheme.Label("F8 캡처/가이드 전체 불투명도 (라인색·배경색 동일 Opacity % · 기본 30%)",9));
+        translate.Controls.Add(MaterialTheme.Label("F7 / F8 캡처·가이드 전체 불투명도 (라인색·배경색 동일 Opacity % · 기본 30%)",9));
         guideOpacityInput=new NumericUpDown{Minimum=0,Maximum=95,Increment=5,Value=Math.Max(0,Math.Min(95,settings.guideOpacity)),BackColor=MaterialTheme.Field,ForeColor=MaterialTheme.Text,BorderStyle=BorderStyle.FixedSingle,Font=Font,Dock=DockStyle.Top,Margin=new Padding(0,0,0,12)};
-        guideOpacityInput.ValueChanged+=(s,e)=>{if(syncingRangeControls)return;settings.guideOpacity=(int)guideOpacityInput.Value;if(rangeGuide!=null){rangeGuide.GuideOpacity=settings.guideOpacity;rangeGuide.FlashUntil=DateTime.UtcNow.AddSeconds(1.8);}Save();status.Text="F8 캡처/가이드 전체 불투명도(라인색·배경색)를 "+settings.guideOpacity+"%로 설정했습니다.";};
+        guideOpacityInput.ValueChanged+=(s,e)=>{if(syncingRangeControls)return;settings.guideOpacity=(int)guideOpacityInput.Value;if(rangeGuide!=null){rangeGuide.GuideOpacity=settings.guideOpacity;rangeGuide.FlashUntil=DateTime.UtcNow.AddSeconds(1.8);}Save();status.Text="F7/F8 캡처·가이드 전체 불투명도(라인색·배경색)를 "+settings.guideOpacity+"%로 설정했습니다.";};
         translate.Controls.Add(guideOpacityInput);
-        translate.Controls.Add(MaterialTheme.Label("• 게임 중 F8을 누르면 먼저 깨끗한 화면을 캡처한 직후, 실제 캡처된 영역 테두리(📸 F8 캡처 영역)를 화면에 잠시 보여주며 번역을 진행합니다.\n• Ctrl + Alt + F8로 원하는 구역을 드래그해 저장하면 [📌 영역 지정 중] 상태가 되어 항상 그 영역만 F8로 번역합니다.\n• 고정 영역을 해제하고 다시 마우스 커서 기준(정중앙/오른쪽/왼쪽/상/하)으로 번역하려면 [Ctrl + Alt + F9]를 누르거나 위 [🔓 영역 지정 해제] 버튼을 누르세요.",9));
+        translate.Controls.Add(MaterialTheme.Label("• [Ctrl + Alt + F7]로 고정 영역을 지정해 두면 언제든 [F7]로 지정 영역만 즉시 캡처·번역합니다.\n• [F8]은 영역 해제 필요 없이 항상 현재 마우스 커서 위치 반경(정중앙/오른쪽/왼쪽/상/하)을 캡처·번역합니다.\n• [F9]는 게임 화면 전체를 번역하고, [F10]은 번역을 숨깁니다.",9));
         key.UseSystemPasswordChar=true;key.Text=settings.apiKey;
         translate.Controls.Add(MaterialTheme.Label("Google Cloud API 키",9));translate.Controls.Add(InputSurface(key));
         font.Minimum=10;font.Maximum=24;font.Value=Math.Max(10,Math.Min(24,settings.fontSize));font.BackColor=MaterialTheme.Field;font.ForeColor=MaterialTheme.Text;font.BorderStyle=BorderStyle.FixedSingle;font.Font=Font;font.Size=new Size(100,font.PreferredHeight);font.Dock=DockStyle.Top;font.Margin=new Padding(0,0,0,12);
@@ -999,7 +976,7 @@ class MainForm : Form {
         obs.Controls.Add(MaterialTheme.Label("1920 × 1080 출력  ·  4K 좌표 자동 축소  ·  투명 배경",9));
         var address=new TextBox{Text=ObsOverlayServer.Url,ReadOnly=true,AccessibleName="OBS 브라우저 소스 주소"};obs.Controls.Add(InputSurface(address));address.ForeColor=MaterialTheme.Secondary;
         var copy=new MaterialButton{Text="주소 복사",Dock=DockStyle.Left,Margin=new Padding(0,0,0,12)};copy.Click+=(s,e)=>{Clipboard.SetText(ObsOverlayServer.Url);status.Text="OBS 브라우저 소스용 주소를 복사했습니다.";};obs.Controls.Add(copy);
-        obs.Controls.Add(MaterialTheme.Label("OBS 브라우저 소스: 너비 1920 / 높이 1080\nF7 페이지 변경과 F10 숨김이 방송 화면에도 함께 반영됩니다.",9));
+        obs.Controls.Add(MaterialTheme.Label("OBS 브라우저 소스: 너비 1920 / 높이 1080\nF7(지정영역) · F8(커서반경) · F9(전체) 번역과 F10 숨김이 방송 화면에도 함께 반영됩니다.",9));
         var log=MaterialTheme.CardPanel();content.Controls.Add(log);log.Controls.Add(MaterialTheme.Label("마지막 번역 · 교정 및 자동 학습",14,true));
         glossaryStatus=MaterialTheme.Label("",9);glossaryStatus.ForeColor=MaterialTheme.Secondary;UpdateGlossarySummary();log.Controls.Add(glossaryStatus);
         history.BackColor=MaterialTheme.Field;history.ForeColor=MaterialTheme.Text;history.Dock=DockStyle.Top;history.Height=210;history.Margin=new Padding(0,4,0,12);log.Controls.Add(history);
@@ -1035,13 +1012,16 @@ class MainForm : Form {
     }
     void UpdateRegionSummary(){
         if(regionSummary==null)return;
-        if(settings.nearFixed){
-            regionSummary.Text="📌 [영역 지정 중] 고정 위치 ("+settings.nearWidth+" × "+settings.nearHeight+" px)  ·  해제하고 커서 기준으로 전환: Ctrl+Alt+F9";
-            regionSummary.ForeColor=MaterialTheme.Number;
-        }else{
-            regionSummary.Text="🖱 [커서 기준 번역 모드] "+settings.nearWidth+" × "+settings.nearHeight+" px  ·  배치: ["+Settings.AnchorLabel(settings.nearAnchor)+"]";
-            regionSummary.ForeColor=MaterialTheme.Secondary;
+        string f7Info="미지정 (Ctrl+Alt+F7로 지정)";
+        if(settings.nearRegionW>0&&settings.nearRegionH>0){
+            var fixedMon=Screen.AllScreens.FirstOrDefault(s=>s.DeviceName==settings.nearMonitor)??Screen.FromControl(this);
+            var mb=fixedMon.Bounds;
+            int fw=Math.Max(48,(int)Math.Round(settings.nearRegionW*mb.Width));
+            int fh=Math.Max(48,(int)Math.Round(settings.nearRegionH*mb.Height));
+            f7Info=fw+" × "+fh+" px (Ctrl+Alt+F7 변경)";
         }
+        regionSummary.Text="🖱 [F8 커서 반경] "+settings.nearWidth+" × "+settings.nearHeight+" px ["+Settings.AnchorLabel(settings.nearAnchor)+"]   |   📌 [F7 지정 영역] "+f7Info;
+        regionSummary.ForeColor=MaterialTheme.Secondary;
     }
     void SyncRangeUi(){
         syncingRangeControls=true;
@@ -1049,83 +1029,52 @@ class MainForm : Form {
             string anc=Settings.NormalizeAnchor(settings.nearAnchor);
             settings.nearAnchor=anc;
             UpdateRegionSummary();
-            if(fixedRegion!=null)fixedRegion.Checked=settings.nearFixed;
             if(showCaptureFlashChk!=null)showCaptureFlashChk.Checked=settings.showCaptureFlash;
             if(trayCaptureFlash!=null)trayCaptureFlash.Checked=settings.showCaptureFlash;
             if(guideOpacityInput!=null)guideOpacityInput.Value=Math.Max(guideOpacityInput.Minimum,Math.Min(guideOpacityInput.Maximum,settings.guideOpacity));
             if(rangeGuide!=null)rangeGuide.GuideOpacity=settings.guideOpacity;
-            if(releaseRegionBtn!=null){releaseRegionBtn.Filled=settings.nearFixed;releaseRegionBtn.Invalidate();}
             if(nearWidthInput!=null)nearWidthInput.Value=Math.Max(nearWidthInput.Minimum,Math.Min(nearWidthInput.Maximum,settings.nearWidth));
             if(nearHeightInput!=null)nearHeightInput.Value=Math.Max(nearHeightInput.Minimum,Math.Min(nearHeightInput.Maximum,settings.nearHeight));
             if(rangePreview!=null){
                 var mb=Screen.FromControl(this).Bounds;
                 rangePreview.MonitorWidth=mb.Width;rangePreview.MonitorHeight=mb.Height;
                 rangePreview.RangeWidth=settings.nearWidth;rangePreview.RangeHeight=settings.nearHeight;
-                rangePreview.IsFixed=settings.nearFixed;
                 rangePreview.FixedRegionX=settings.nearRegionX;rangePreview.FixedRegionY=settings.nearRegionY;
                 rangePreview.FixedRegionW=settings.nearRegionW;rangePreview.FixedRegionH=settings.nearRegionH;
                 rangePreview.AnchorMode=anc;
                 rangePreview.Invalidate();
             }
-            if(anchorCenterBtn!=null){anchorCenterBtn.Filled=(!settings.nearFixed&&anc=="center");anchorCenterBtn.Invalidate();}
-            if(anchorRightBtn!=null){anchorRightBtn.Filled=(!settings.nearFixed&&anc=="right");anchorRightBtn.Invalidate();}
-            if(anchorLeftBtn!=null){anchorLeftBtn.Filled=(!settings.nearFixed&&anc=="left");anchorLeftBtn.Invalidate();}
-            if(anchorTopBtn!=null){anchorTopBtn.Filled=(!settings.nearFixed&&anc=="top");anchorTopBtn.Invalidate();}
-            if(anchorBottomBtn!=null){anchorBottomBtn.Filled=(!settings.nearFixed&&anc=="bottom");anchorBottomBtn.Invalidate();}
+            if(anchorCenterBtn!=null){anchorCenterBtn.Filled=(anc=="center");anchorCenterBtn.Invalidate();}
+            if(anchorRightBtn!=null){anchorRightBtn.Filled=(anc=="right");anchorRightBtn.Invalidate();}
+            if(anchorLeftBtn!=null){anchorLeftBtn.Filled=(anc=="left");anchorLeftBtn.Invalidate();}
+            if(anchorTopBtn!=null){anchorTopBtn.Filled=(anc=="top");anchorTopBtn.Invalidate();}
+            if(anchorBottomBtn!=null){anchorBottomBtn.Filled=(anc=="bottom");anchorBottomBtn.Invalidate();}
             if(presetSmallBtn!=null){presetSmallBtn.Filled=(settings.nearWidth==900&&settings.nearHeight==650);presetSmallBtn.Invalidate();}
             if(presetStdBtn!=null){presetStdBtn.Filled=(settings.nearWidth==1280&&settings.nearHeight==860);presetStdBtn.Invalidate();}
             if(presetLargeBtn!=null){presetLargeBtn.Filled=(settings.nearWidth==1600&&settings.nearHeight==1050);presetLargeBtn.Invalidate();}
             if(presetXLargeBtn!=null){presetXLargeBtn.Filled=(settings.nearWidth==2000&&settings.nearHeight==1300);presetXLargeBtn.Invalidate();}
             if(toggleGuideBtn!=null){
                 toggleGuideBtn.Filled=(rangeGuide!=null&&rangeGuide.Pinned);
-                toggleGuideBtn.Text=(rangeGuide!=null&&rangeGuide.Pinned)?"실제 화면 가이드 박스: ON":"실제 화면 가이드 박스: OFF";
+                toggleGuideBtn.Text=(rangeGuide!=null&&rangeGuide.Pinned)?"실제 화면 F8 가이드 박스: ON":"실제 화면 F8 가이드 박스: OFF";
                 toggleGuideBtn.Invalidate();
             }
         }finally{syncingRangeControls=false;}
     }
-    void ReleaseFixedRegionToCursorMode(){
-        settings.nearFixed=false;
-        if(settings.nearWidth<360||settings.nearHeight<240){
-            settings.nearWidth=1280;
-            settings.nearHeight=860;
-        }
-        SyncRangeUi();
-        Save();
-        status.Text="🔓 고정 영역 지정을 해제했습니다. 이제 마우스 커서 기준(["+Settings.AnchorLabel(settings.nearAnchor)+"])으로 F8 번역을 수행합니다.";
-        if(rangeGuide!=null)rangeGuide.FlashUntil=DateTime.UtcNow.AddSeconds(2.2);
-        if(progressHud!=null)progressHud.ShowToast(Screen.FromPoint(Cursor.Position).Bounds,settings.hudPosition,"◎ 영역 지정 해제 완료  →  [커서 기준 번역 ("+Settings.AnchorLabel(settings.nearAnchor)+")] 전환",false,2.2);
-    }
     void SelectNearAnchor(string anchorMode, bool saveNow){
-        bool wasFixed=settings.nearFixed;
         settings.nearAnchor=Settings.NormalizeAnchor(anchorMode);
-        if(settings.nearFixed){
-            settings.nearFixed=false;
-            if(settings.nearWidth<360||settings.nearHeight<240){settings.nearWidth=1280;settings.nearHeight=860;}
-        }
         SyncRangeUi();
         if(saveNow){
             Save();
-            status.Text=(wasFixed?"🔓 고정 영역을 해제하고 ":"")+"F8 캡처 영역을 커서 기준 ["+Settings.AnchorLabel(settings.nearAnchor)+"]으로 설정했습니다.";
+            status.Text="F8 커서 반경 배치를 ["+Settings.AnchorLabel(settings.nearAnchor)+"]으로 설정했습니다.";
             if(rangeGuide!=null)rangeGuide.FlashUntil=DateTime.UtcNow.AddSeconds(2.2);
-            if(wasFixed&&progressHud!=null)progressHud.ShowToast(Screen.FromPoint(Cursor.Position).Bounds,settings.hudPosition,"◎ 영역 지정 해제  →  [커서 기준 번역 ("+Settings.AnchorLabel(settings.nearAnchor)+")] 전환",false,2.0);
         }
     }
     void ApplyRangeSize(int w, int h, bool flashGuide){
         settings.nearWidth=Math.Max(48,Math.Min(3840,w));
         settings.nearHeight=Math.Max(48,Math.Min(2160,h));
-        if(settings.nearFixed&&settings.nearRegionW>0){
-            var mb=Screen.FromControl(this).Bounds;
-            double cx=settings.nearRegionX+settings.nearRegionW/2.0;
-            double cy=settings.nearRegionY+settings.nearRegionH/2.0;
-            double nw=Math.Min(1.0,settings.nearWidth/(double)mb.Width);
-            double nh=Math.Min(1.0,settings.nearHeight/(double)mb.Height);
-            settings.nearRegionW=nw;settings.nearRegionH=nh;
-            settings.nearRegionX=Math.Max(0.0,Math.Min(1.0-nw,cx-nw/2.0));
-            settings.nearRegionY=Math.Max(0.0,Math.Min(1.0-nh,cy-nh/2.0));
-        }
         SyncRangeUi();
         Save();
-        status.Text="F8 번역 범위를 "+settings.nearWidth+" × "+settings.nearHeight+" px로 설정했습니다.";
+        status.Text="F8 커서 반경 범위를 "+settings.nearWidth+" × "+settings.nearHeight+" px로 설정했습니다.";
         if(flashGuide&&rangeGuide!=null)rangeGuide.FlashUntil=DateTime.UtcNow.AddSeconds(2.2);
     }
     void ToggleLiveGuide(){
@@ -1139,7 +1088,7 @@ class MainForm : Form {
         settings.showCaptureFlash=!settings.showCaptureFlash;
         SyncRangeUi();
         Save();
-        status.Text=settings.showCaptureFlash?"📸 F8 입력 시 캡처되는 영역 테두리를 잠시 표시하고 번역합니다.":"F8 입력 시 캡처 영역 테두리 표시를 껐습니다.";
+        status.Text=settings.showCaptureFlash?"📸 F7/F8 입력 시 캡처되는 영역 테두리를 잠시 표시하고 번역합니다.":"F7/F8 입력 시 캡처 영역 테두리 표시를 껐습니다.";
         if(settings.showCaptureFlash&&rangeGuide!=null)rangeGuide.FlashUntil=DateTime.UtcNow.AddSeconds(1.8);
     }
     void SelectHudPosition(string pos, bool saveNow){
@@ -1260,56 +1209,53 @@ class MainForm : Form {
         Dismiss();Hide();
         var delay=new Timer{Interval=250};delay.Tick+=(s,e)=>{delay.Stop();delay.Dispose();try{Native.DwmFlush();using(picker=new RegionPicker(settings,triggerCursor)){
             if(picker.ShowDialog()==DialogResult.OK){
-                if(picker.ReleaseToCursorRequested){
-                    ReleaseFixedRegionToCursorMode();
-                }else{
-                    var r=picker.SelectedRegion;
-                    var monitor=Screen.FromPoint(new Point(r.X+r.Width/2,r.Y+r.Height/2));
-                    var b=monitor.Bounds;
-                    settings.nearWidth=Math.Max(48,r.Width);
-                    settings.nearHeight=Math.Max(48,r.Height);
-                    settings.nearRegionX=(r.X-b.X)/(double)b.Width;
-                    settings.nearRegionY=(r.Y-b.Y)/(double)b.Height;
-                    settings.nearRegionW=settings.nearWidth/(double)b.Width;
-                    settings.nearRegionH=settings.nearHeight/(double)b.Height;
-                    settings.nearMonitor=monitor.DeviceName;
-                    settings.nearFixed=true;
-                    Save();
-                    SyncRangeUi();
-                    status.Text="📌 [영역 지정 중] F8 고정 영역을 "+settings.nearWidth+" × "+settings.nearHeight+" px로 저장했습니다. (영역 해제: Ctrl+Alt+F9)";
-                    if(rangeGuide!=null)rangeGuide.FlashUntil=DateTime.UtcNow.AddSeconds(2.4);
-                    if(progressHud!=null)progressHud.ShowToast(b,settings.hudPosition,"◈ F8 영역 지정 완료 ("+settings.nearWidth+"×"+settings.nearHeight+" px 고정)  ·  영역 해제: Ctrl+Alt+F9",false,2.2);
-                }
+                var r=picker.SelectedRegion;
+                var monitor=Screen.FromPoint(new Point(r.X+r.Width/2,r.Y+r.Height/2));
+                var b=monitor.Bounds;
+                int fw=Math.Max(48,r.Width);
+                int fh=Math.Max(48,r.Height);
+                settings.nearRegionX=(r.X-b.X)/(double)b.Width;
+                settings.nearRegionY=(r.Y-b.Y)/(double)b.Height;
+                settings.nearRegionW=fw/(double)b.Width;
+                settings.nearRegionH=fh/(double)b.Height;
+                settings.nearMonitor=monitor.DeviceName;
+                Save();
+                SyncRangeUi();
+                status.Text="📌 F7 지정 영역을 "+fw+" × "+fh+" px로 저장했습니다. 게임에서 F7로 지정 영역을, F8로 커서 반경을 번역하세요.";
+                if(rangeGuide!=null)rangeGuide.ShowCaptureFlash(new Rectangle(r.X,r.Y,fw,fh),new Point(r.X+fw/2,r.Y+fh/2),true,settings.nearAnchor,2.2);
+                if(progressHud!=null)progressHud.ShowToast(b,settings.hudPosition,"◈ F7 지정 영역 저장 완료 ("+fw+"×"+fh+" px)  ·  F7 지정영역 / F8 커서반경 / F9 전체",false,2.2);
             }
-            else status.Text="영역 지정을 취소했습니다. 기존 설정("+((settings.nearFixed)?"영역 지정 중":"커서 기준 번역")+")이 유지됩니다.";
+            else status.Text="F7 영역 지정을 취소했습니다. 기존 F7 지정 영역이 유지됩니다.";
         }}catch(Exception ex){status.Text="영역 선택 실패: "+ex.Message;}finally{picker=null;selectingRegion=false;if(restore){Show();Activate();}}};delay.Start();
     }
     protected override void OnHandleCreated(EventArgs e){
         base.OnHandleCreated(e);int dark=1;Native.DwmSetWindowAttribute(Handle,20,ref dark,4);bool ok=true;
-        uint[] keys={0x77,0x78,0x79,0x76}; // F8, F9, F10, F7
+        uint[] keys={0x77,0x78,0x79,0x76}; // 1:F8, 2:F9, 3:F10, 4:F7
         for(int i=0;i<keys.Length;i++){
             ok &= Native.RegisterHotKey(Handle,i+1,0x4000,keys[i]);
             // RegisterHotKey requires an exact modifier match. Keep Shift held
             // in the game so its expanded tooltip remains visible at capture.
             ok &= Native.RegisterHotKey(Handle,i+6,0x4004,keys[i]);
         }
-        ok &= Native.RegisterHotKey(Handle,5,0x4003,0x77);  // Ctrl+Alt+F8: 고정 영역 지정
-        ok &= Native.RegisterHotKey(Handle,10,0x4003,0x78); // Ctrl+Alt+F9: 영역 지정 해제 -> 커서 기준 번역 전환
-        if(!ok)status.Text="일부 단축키 등록 실패: 다른 프로그램의 F7~F10 / Ctrl+Alt+F8~F9 단축키 충돌을 확인하세요.";
+        ok &= Native.RegisterHotKey(Handle,5,0x4003,0x76); // Ctrl+Alt+F7: F7 지정 영역 설정
+        if(!ok)status.Text="일부 단축키 등록 실패: 다른 프로그램의 F7~F10 / Ctrl+Alt+F7 단축키 충돌을 확인하세요.";
     }
     protected override void WndProc(ref Message m){
         if(m.Msg==0x312){
             int id=m.WParam.ToInt32();
             if(id>=6&&id<=9)id-=5;
-            if(id==10){
-                if(selectingRegion&&picker!=null){picker.ReleaseToCursorRequested=true;picker.DialogResult=DialogResult.OK;picker.Close();}
-                else ReleaseFixedRegionToCursorMode();
-            }else if(id>=1&&id<=5){
+            if(id>=1&&id<=5){
                 if(selectingRegion){if(id==3&&picker!=null)picker.Close();}
                 else if(id==5)ChooseRegion();
                 else if(id==3)Dismiss();
-                else if(id==4){if(overlay.Visible){overlay.NextPage();shown=DateTime.UtcNow;}}
-                else BeginCapture(id==1);
+                else if(id==4){
+                    if(settings.nearRegionW<=0||settings.nearRegionH<=0){
+                        if(progressHud!=null)progressHud.ShowToast(Screen.FromPoint(Cursor.Position).Bounds,settings.hudPosition,"◈ 먼저 F7로 번역할 영역을 마우스로 드래그해 지정하세요 (Ctrl+Alt+F7)",false,2.2);
+                        ChooseRegion();
+                    }else BeginCapture(1); // 1: F7 지정 영역 캡처
+                }
+                else if(id==1)BeginCapture(2); // 2: F8 커서 위치 반경 캡처
+                else if(id==2)BeginCapture(3); // 3: F9 전체 화면 캡처
             }
         }
         base.WndProc(ref m);
@@ -1326,17 +1272,17 @@ class MainForm : Form {
         try{if(IsLocalBackend(settings.backend))localEngine.Start(settings.backend);else localEngine.Stop();}catch(Exception ex){status.Text="설정 저장됨 · 엔진 시작 실패: "+ex.Message;}
     }
     static bool IsLocalBackend(string name){return name=="hymt"||name=="gemma"||name=="exaone";}
-    void Dismiss(){generation++;overlay.Hide();if(rangeGuide!=null){rangeGuide.CaptureFlashUntil=DateTime.MinValue;if(!rangeGuide.Pinned)rangeGuide.Hide();}if(progressHud!=null){progressHud.ToastUntil=DateTime.MinValue;progressHud.Hide();}CancelWorker();status.Text="번역을 숨겼습니다. F8/F9로 다시 번역하세요.";}
+    void Dismiss(){generation++;overlay.Hide();if(rangeGuide!=null){rangeGuide.CaptureFlashUntil=DateTime.MinValue;if(!rangeGuide.Pinned)rangeGuide.Hide();}if(progressHud!=null){progressHud.ToastUntil=DateTime.MinValue;progressHud.Hide();}CancelWorker();status.Text="번역을 숨겼습니다. F7(지정영역) / F8(커서반경) / F9(전체)로 다시 번역하세요.";}
     void EnsureOcrHost(){if(workerHost!=null&&!workerHost.HasExited)return;if(workerHost!=null)workerHost.Dispose();var psi=new ProcessStartInfo("powershell.exe","-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \""+Path.Combine(root,"Worker.ps1")+"\" -Listen");psi.UseShellExecute=false;psi.CreateNoWindow=true;psi.RedirectStandardInput=true;workerHost=Process.Start(psi);helpers.Add(workerHost);}
     static string AsciiJson(string value){var text=new StringBuilder();foreach(char c in value)if(c>127)text.Append("\\u"+((int)c).ToString("x4"));else text.Append(c);return text.ToString();}
     void FinishJob(){worker=null;CleanTemp();}
     void CancelWorker(){if(worker!=null){try{if(!worker.HasExited)worker.Kill();}catch{}worker.Dispose();if(worker==workerHost)workerHost=null;worker=null;}CleanTemp();}
     void CleanTemp(){try{if(temp!=null && Directory.Exists(temp))Directory.Delete(temp,true);}catch{}}
-    void BeginCapture(bool near){
+    void BeginCapture(int mode){ // 1: F7 지정영역, 2: F8 커서반경, 3: F9 전체화면
         if(worker!=null){status.Text="번역 중입니다. F10으로 취소할 수 있습니다.";return;}
         try {
             started=DateTime.UtcNow;
-            captureNearFlag=near;
+            activeCaptureMode=mode;
             if(IsLocalBackend(settings.backend)){
                 localEngine.Start(settings.backend);
                 if(!localEngine.IsReady){
@@ -1348,11 +1294,11 @@ class MainForm : Form {
             target=Native.GetForegroundWindow(); if(target==Handle){status.Text="먼저 게임 창을 선택한 뒤 단축키를 눌러주세요.";return;}
             if(rangeGuide!=null){rangeGuide.CaptureFlashUntil=DateTime.MinValue;if(rangeGuide.Visible)rangeGuide.Hide();}
             if(progressHud!=null&&progressHud.Visible)progressHud.Hide();
-            overlay.Hide();Native.DwmFlush();generation++;jobGeneration=generation;nearMode=near&&!settings.nearFixed;anchor=Cursor.Position;
+            overlay.Hide();Native.DwmFlush();generation++;jobGeneration=generation;nearMode=(mode==2);anchor=Cursor.Position;
             display=Screen.FromPoint(anchor).Bounds; Native.RECT wr;
             var area=display;
             if(Native.GetWindowRect(target,out wr)) {var bounds=Rectangle.FromLTRB(wr.L,wr.T,wr.R,wr.B);var intersection=Rectangle.Intersect(display,bounds);if(intersection.Width>200 && intersection.Height>150) area=intersection;}
-            if(near&&settings.nearFixed&&settings.nearRegionW>0){
+            if(mode==1){
                 var fixedMon=Screen.AllScreens.FirstOrDefault(s=>s.DeviceName==settings.nearMonitor)??Screen.FromPoint(anchor);
                 display=fixedMon.Bounds;
                 var fixedRect=new Rectangle(
@@ -1361,11 +1307,13 @@ class MainForm : Form {
                     Math.Max(48,(int)Math.Round(settings.nearRegionW*display.Width)),
                     Math.Max(48,(int)Math.Round(settings.nearRegionH*display.Height)));
                 capture=Rectangle.Intersect(display,fixedRect);
-            }else{
+            }else if(mode==2){
                 var nearRect=Settings.GetCursorRelativeBox(anchor,settings.nearWidth,settings.nearHeight,settings.nearAnchor);
-                capture=near ? Rectangle.Intersect(area,nearRect) : area;
+                capture=Rectangle.Intersect(area,nearRect);
+            }else{
+                capture=area;
             }
-            if(capture.Width<10||capture.Height<10) throw new Exception("캡처 영역이 없습니다. 게임 창 안에 마우스를 놓거나 영역 지정을 확인하세요.");
+            if(capture.Width<10||capture.Height<10) throw new Exception("캡처 영역이 없습니다. 게임 창 안에 마우스를 놓거나 Ctrl+Alt+F7 영역 지정을 확인하세요.");
             temp=Path.Combine(Path.GetTempPath(),"GuildLens-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(temp);output=Path.Combine(temp,"result.json");
             imageScale=Math.Min(1,2400.0/Math.Max(capture.Width,capture.Height));
             using(var image=new Bitmap(capture.Width,capture.Height))using(var g=Graphics.FromImage(image)){
@@ -1373,10 +1321,10 @@ class MainForm : Form {
                 if(imageScale<1)using(var resized=new Bitmap(image,new Size((int)(capture.Width*imageScale),(int)(capture.Height*imageScale))))resized.Save(Path.Combine(temp,"capture.png"),ImageFormat.Png);
                 else image.Save(Path.Combine(temp,"capture.png"),ImageFormat.Png);
             }
-            if(near && settings.showCaptureFlash && rangeGuide!=null){
-                rangeGuide.ShowCaptureFlash(capture,anchor,settings.nearFixed,settings.nearAnchor,1.45);
+            if((mode==1||mode==2) && settings.showCaptureFlash && rangeGuide!=null){
+                rangeGuide.ShowCaptureFlash(capture,anchor,mode==1,settings.nearAnchor,1.45);
             }
-            if(progressHud!=null)progressHud.RenderProgress(display,settings.hudPosition,near,settings.nearFixed,settings.sourceLang,0.0);
+            if(progressHud!=null)progressHud.RenderProgress(display,settings.hudPosition,mode,settings.sourceLang,0.0);
             EnsureOcrHost();worker=workerHost;worker.StandardInput.WriteLine(AsciiJson(json.Serialize(new{inputPath=Path.Combine(temp,"capture.png"),outputPath=output,ocrOnly=false})));worker.StandardInput.Flush();status.Text="화면 인식 / 번역 중… F10으로 취소";
         }catch(Exception ex){if(progressHud!=null&&progressHud.Visible)progressHud.Hide();CancelWorker();status.Text="캡처 실패: "+ex.Message;tray.ShowBalloonTip(4000,"DalvitLens",status.Text,ToolTipIcon.Warning);}
     }
@@ -1384,7 +1332,7 @@ class MainForm : Form {
         if(engineState!=null&&IsLocalBackend(settings.backend)&&engineState.Text!=localEngine.State)engineState.Text=localEngine.State;
         if(rangeGuide!=null){
             var cBox=rangeGuide.CaptureFlashBox;
-            bool showCaptureFlash=!selectingRegion && settings.showCaptureFlash && cBox.Width>=40 && ((worker!=null && captureNearFlag && !overlay.Visible) || DateTime.UtcNow<rangeGuide.CaptureFlashUntil);
+            bool showCaptureFlash=!selectingRegion && settings.showCaptureFlash && cBox.Width>=40 && ((worker!=null && (activeCaptureMode==1||activeCaptureMode==2) && !overlay.Visible) || DateTime.UtcNow<rangeGuide.CaptureFlashUntil);
             bool showGuide=!selectingRegion && worker==null && !overlay.Visible && (rangeGuide.Pinned || DateTime.UtcNow<rangeGuide.FlashUntil);
             if(showCaptureFlash){
                 rangeGuide.UpdateGuide(cBox,rangeGuide.CaptureFlashCursor,cBox.Width,cBox.Height,rangeGuide.CaptureFlashFixed,rangeGuide.CaptureFlashAnchor,true);
@@ -1392,17 +1340,8 @@ class MainForm : Form {
                 Point cur=Cursor.Position;
                 var mon=Screen.FromPoint(cur).Bounds;
                 var raw=Settings.GetCursorRelativeBox(cur,settings.nearWidth,settings.nearHeight,settings.nearAnchor);
-                if(settings.nearFixed&&settings.nearRegionW>0){
-                    var fixedMon=Screen.AllScreens.FirstOrDefault(s=>s.DeviceName==settings.nearMonitor)??Screen.FromPoint(cur);
-                    mon=fixedMon.Bounds;
-                    raw=new Rectangle(
-                        mon.X+(int)Math.Round(settings.nearRegionX*mon.Width),
-                        mon.Y+(int)Math.Round(settings.nearRegionY*mon.Height),
-                        Math.Max(48,(int)Math.Round(settings.nearRegionW*mon.Width)),
-                        Math.Max(48,(int)Math.Round(settings.nearRegionH*mon.Height)));
-                }
                 var clamped=Rectangle.Intersect(mon,raw);
-                if(clamped.Width>=40&&clamped.Height>=40)rangeGuide.UpdateGuide(clamped,cur,settings.nearWidth,settings.nearHeight,settings.nearFixed,settings.nearAnchor,false);
+                if(clamped.Width>=40&&clamped.Height>=40)rangeGuide.UpdateGuide(clamped,cur,settings.nearWidth,settings.nearHeight,false,settings.nearAnchor,false);
             }else if(rangeGuide.Visible){
                 rangeGuide.Hide();
             }
@@ -1413,7 +1352,7 @@ class MainForm : Form {
                 CancelWorker();status.Text="번역 시간이 초과됐습니다. 연결과 모델 설정을 확인하세요.";tray.ShowBalloonTip(4000,"DalvitLens",status.Text,ToolTipIcon.Warning);return;
             }
             if(!File.Exists(output)&&!worker.HasExited){
-                if(progressHud!=null)progressHud.RenderProgress(display,settings.hudPosition,captureNearFlag,settings.nearFixed,settings.sourceLang,(DateTime.UtcNow-started).TotalSeconds);
+                if(progressHud!=null)progressHud.RenderProgress(display,settings.hudPosition,activeCaptureMode,settings.sourceLang,(DateTime.UtcNow-started).TotalSeconds);
                 return;
             }
             if(progressHud!=null&&progressHud.Visible)progressHud.Hide();
@@ -1428,7 +1367,7 @@ class MainForm : Form {
                 string langEmpty=settings.sourceLang=="ja"?"일본어 텍스트를 찾지 못했습니다. F9로 범위를 넓히거나 원문 언어 스위치를 확인하세요.":settings.sourceLang=="zh"?"중국어 텍스트를 찾지 못했습니다. F9로 범위를 넓히거나 원문 언어 스위치를 확인하세요.":"영문을 찾지 못했습니다. F9로 범위를 넓히거나 원문 언어(영/일/중) 스위치를 확인하세요.";
                 if(result.blocks.Length==0){
                     status.Text=String.IsNullOrEmpty(result.error)?langEmpty:result.error;
-                    if(captureNearFlag&&settings.showCaptureFlash&&rangeGuide!=null)rangeGuide.CaptureFlashUntil=DateTime.UtcNow.AddSeconds(1.8);
+                    if((activeCaptureMode==1||activeCaptureMode==2)&&settings.showCaptureFlash&&rangeGuide!=null)rangeGuide.CaptureFlashUntil=DateTime.UtcNow.AddSeconds(1.8);
                     if(progressHud!=null)progressHud.ShowToast(display,settings.hudPosition,"⚠ "+(String.IsNullOrEmpty(result.error)?"영역 내 원문 텍스트를 찾지 못했습니다 (F9 전체 권장)":result.error),true,2.2);
                     tray.ShowBalloonTip(5000,"DalvitLens",status.Text,ToolTipIcon.Warning);
                 }
@@ -1440,15 +1379,8 @@ class MainForm : Form {
                 }else status.Text="화면/마우스 위치가 바뀌어 표시를 생략했습니다. 번역 기록은 남아 있습니다.";
             }catch(Exception ex){status.Text="처리 실패: "+ex.Message;tray.ShowBalloonTip(4000,"DalvitLens",status.Text,ToolTipIcon.Warning);}
             if(worker.HasExited)CancelWorker();else FinishJob();
-        }else if(progressHud!=null){
-            if(DateTime.UtcNow<progressHud.ToastUntil){
-                // Keep active toast on screen
-            }else if(settings.nearFixed && !selectingRegion && !overlay.Visible){
-                var fixedMon=Screen.AllScreens.FirstOrDefault(s=>s.DeviceName==settings.nearMonitor)??Screen.FromPoint(Cursor.Position);
-                progressHud.RenderFixedModeBanner(fixedMon.Bounds,settings.hudPosition,settings.nearWidth,settings.nearHeight);
-            }else if(progressHud.Visible){
-                progressHud.Hide();
-            }
+        }else if(progressHud!=null && progressHud.Visible && DateTime.UtcNow>=progressHud.ToastUntil){
+            progressHud.Hide();
         }
         if(overlay.Visible && (Native.GetForegroundWindow()!=target || Native.IsIconic(target) || (nearMode && Distance(Cursor.Position,anchor)>260) || DateTime.UtcNow-shown>TimeSpan.FromSeconds(45)))overlay.Hide();
     }

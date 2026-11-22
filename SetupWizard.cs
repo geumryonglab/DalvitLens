@@ -55,7 +55,7 @@ class SetupWizardForm : Form {
     InstallerButton cancelBtn = new InstallerButton { Text = "취소" };
 
     public SetupWizardForm() {
-        Text = "DalvitLens v1.2.0 설치 마법사";
+        Text = "DalvitLens v1.3.0 설치 마법사";
         ClientSize = new Size(780, 640);
         MinimumSize = new Size(760, 620);
         StartPosition = FormStartPosition.CenterScreen;
@@ -77,13 +77,13 @@ class SetupWizardForm : Form {
         // Top Header + Step Indicator
         var header = new TableLayoutPanel { Dock = DockStyle.Top, AutoSize = true, ColumnCount = 1, Margin = new Padding(0, 0, 0, 14) };
         header.Controls.Add(new Label {
-            Text = "DALVITLENS v1.2.0  /  INSTALLER & MODEL WIZARD",
+            Text = "DALVITLENS v1.3.0  /  INSTALLER & MODEL WIZARD",
             AutoSize = true,
             Font = new Font("맑은 고딕", 8.75f, FontStyle.Bold),
             ForeColor = InstallerTheme.Primary
         });
         header.Controls.Add(new Label {
-            Text = "달빛렌즈(DalvitLens) v1.2.0 설치 마법사",
+            Text = "달빛렌즈(DalvitLens) v1.3.0 설치 마법사",
             AutoSize = true,
             Font = new Font("맑은 고딕", 19f, FontStyle.Bold),
             ForeColor = InstallerTheme.Text,
@@ -689,7 +689,7 @@ static class SetupInstallerCore {
     internal static void EnsureInitialSettings(string targetDir, string defaultBackend) {
         string settingsPath = Path.Combine(targetDir, "settings.json");
         if (File.Exists(settingsPath)) return;
-        string json = "{\"backend\":\"" + defaultBackend + "\",\"apiKey\":\"\",\"sourceLang\":\"en\",\"hudPosition\":\"top-center\",\"nearAnchor\":\"center\",\"fontSize\":13,\"nearWidth\":1280,\"nearHeight\":860,\"nearFixed\":false,\"tooltipLine\":true,\"tooltipLineOpacity\":73,\"tooltipOpacity\":85,\"obsTooltipOpacity\":48,\"nearRegionX\":0,\"nearRegionY\":0,\"nearRegionW\":0,\"nearRegionH\":0,\"nearMonitor\":\"\"}";
+        string json = "{\"backend\":\"" + defaultBackend + "\",\"apiKey\":\"\",\"sourceLang\":\"en\",\"hudPosition\":\"top-center\",\"nearAnchor\":\"center\",\"fontSize\":13,\"nearWidth\":1280,\"nearHeight\":860,\"nearFixed\":false,\"showCaptureFlash\":true,\"guideOpacity\":30,\"tooltipLine\":true,\"tooltipLineOpacity\":73,\"tooltipOpacity\":85,\"obsTooltipOpacity\":48,\"nearRegionX\":0,\"nearRegionY\":0,\"nearRegionW\":0,\"nearRegionH\":0,\"nearMonitor\":\"\"}";
         File.WriteAllText(settingsPath, json, new UTF8Encoding(false));
     }
 

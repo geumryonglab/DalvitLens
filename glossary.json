@@ -150,7 +150,8 @@
                   "HILL GIRNT":  "힐 기런트",
                   "LIGHT":  "빛의 힘",
                   "LIGHTBOUND":  "라이트바운드 (Lightbound)",
-                  "PURCHASE":  "구매하기 (Purchasing)"
+                  "PURCHASE":  "구매하기 (Purchasing)",
+                  "CONFIRM":  "확인하기"
               },
     "terms":  [
                   {
@@ -572,6 +573,16 @@
                       "pattern":  "\\bBRRRIER\\ PRCT\\b",
                       "term":  "BRRRIER PRCT",
                       "ko":  "방어력 증"
+                  },
+                  {
+                      "pattern":  "\\bINFUSED\\ BRRRIER\\b",
+                      "term":  "INFUSED BRRRIER",
+                      "ko":  "강화된 병사"
+                  },
+                  {
+                      "pattern":  "\\bEACH\\ UILD\\ RUNE\\b",
+                      "term":  "EACH UILD RUNE",
+                      "ko":  "각 길드 룬"
                   }
               ],
     "postReplace":  [
